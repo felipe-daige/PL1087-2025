@@ -15,12 +15,14 @@ class ExemptIncome
 {
     public function __construct(
         public readonly float $dividendsTotal,           // Total de dividendos recebidos no ano
-        public readonly float $dividendsExcess,          // Valor que excedeu R$ 50k/mês (tributado 10%)
+        public readonly float $dividendsExcess,          // Valor que excedeu R$ 600k/ano (tributado 10% sobre o excedente)
         public readonly float $jcpTotal,                 // Juros sobre Capital Próprio (tributado 15% na fonte)
         public readonly float $financialInvestments,     // Aplicações financeiras (renda fixa, fundos, etc)
         public readonly float $taxExemptInvestments = 0, // LCI, LCA, CRI, CRA (isentos de IR)
         public readonly float $fiiDividends = 0,         // Dividendos de FIIs (isentos para PF)
-        public readonly float $otherExempt = 0           // Outros rendimentos isentos
+        public readonly float $otherExempt = 0,          // Outros rendimentos isentos
+        public readonly float $irrfJcpWithheld = 0,     // IRRF Retido sobre JCP (prioritário sobre cálculo de 15%)
+        public readonly float $irrfExclusiveOther = 0    // IRRF Retido sobre Outras Aplicações (Renda Fixa, Fundos, Ganhos de Capital)
     ) {}
 
     /**
@@ -35,7 +37,9 @@ class ExemptIncome
             financialInvestments: self::parseFloat($data['financial_investments'] ?? 0),
             taxExemptInvestments: self::parseFloat($data['tax_exempt_investments'] ?? 0),
             fiiDividends: self::parseFloat($data['fii_dividends'] ?? 0),
-            otherExempt: self::parseFloat($data['other_exempt'] ?? 0)
+            otherExempt: self::parseFloat($data['other_exempt'] ?? 0),
+            irrfJcpWithheld: self::parseFloat($data['irrf_jcp_withheld'] ?? 0),
+            irrfExclusiveOther: self::parseFloat($data['irrf_exclusive_other'] ?? 0)
         );
     }
 
@@ -68,20 +72,30 @@ class ExemptIncome
     /**
      * Calcula o imposto sobre dividendos excedentes
      * 
-     * @see Lei 15.270/2025 - Art. 5º (10% sobre excedente de R$ 50k/mês)
+     * Conforme Lei 15.270/2025 - Art. 5º e Art. 6º-A:
+     * - Limite de isenção anualizado: R$ 50.000/mês × 12 = R$ 600.000/ano
+     * - Base de cálculo: apenas o excedente acima de R$ 600.000/ano (incidência marginal)
+     * - Alíquota: 10% sobre o excedente
+     * 
+     * @see Lei 15.270/2025 - Art. 5º e Art. 6º-A
      */
     public function getDividendTax(): float
     {
-        // Art. 5º - Alíquota de 10% sobre dividendos que excedem R$ 50.000/mês
+        // Alíquota de 10% sobre o excedente (base marginal)
         return $this->dividendsExcess * 0.10;
     }
 
     /**
      * Calcula o imposto sobre JCP (retido na fonte)
-     * Alíquota fixa de 15%
+     * Prioriza o valor manual informado (irrfJcpWithheld), senão calcula 15% do total
      */
     public function getJcpTax(): float
     {
+        // Prioridade ao input manual quando informado
+        if ($this->irrfJcpWithheld > 0) {
+            return $this->irrfJcpWithheld;
+        }
+        // Fallback para cálculo automático (15% do total)
         return $this->jcpTotal * 0.15;
     }
 
@@ -131,6 +145,8 @@ class ExemptIncome
             'tax_exempt_investments' => $this->taxExemptInvestments,
             'fii_dividends' => $this->fiiDividends,
             'other_exempt' => $this->otherExempt,
+            'irrf_jcp_withheld' => $this->irrfJcpWithheld,
+            'irrf_exclusive_other' => $this->irrfExclusiveOther,
         ];
     }
 }

@@ -16,9 +16,9 @@ class IncomeSource
 {
     public function __construct(
         public readonly string $name,
-        public readonly float $grossMonthly,
-        public readonly float $inssWithheld,
-        public readonly float $irrfWithheld,
+        public readonly float $grossAnnual,
+        public readonly float $inssAnnual,
+        public readonly float $irrfAnnual,
         public readonly string $type = 'salary' // salary, prolabore, autonomous, retirement
     ) {}
 
@@ -29,11 +29,35 @@ class IncomeSource
     {
         return new self(
             name: $data['name'] ?? '',
-            grossMonthly: self::parseFloat($data['gross'] ?? 0),
-            inssWithheld: self::parseFloat($data['inss'] ?? 0),
-            irrfWithheld: self::parseFloat($data['irrf'] ?? 0),
+            grossAnnual: self::parseFloat($data['gross'] ?? 0),
+            inssAnnual: self::parseFloat($data['inss'] ?? 0),
+            irrfAnnual: self::parseFloat($data['irrf'] ?? 0),
             type: $data['type'] ?? 'salary'
         );
+    }
+
+    /**
+     * Calcula o rendimento bruto mensal
+     */
+    public function getGrossMonthly(): float
+    {
+        return $this->grossAnnual / 12;
+    }
+
+    /**
+     * Calcula o INSS retido mensal
+     */
+    public function getInssMonthly(): float
+    {
+        return $this->inssAnnual / 12;
+    }
+
+    /**
+     * Calcula o IRRF retido mensal
+     */
+    public function getIrrfMonthly(): float
+    {
+        return $this->irrfAnnual / 12;
     }
 
     /**
@@ -41,7 +65,7 @@ class IncomeSource
      */
     public function getNetMonthly(): float
     {
-        return $this->grossMonthly - $this->inssWithheld;
+        return ($this->grossAnnual - $this->inssAnnual) / 12;
     }
 
     /**
@@ -49,7 +73,7 @@ class IncomeSource
      */
     public function getGrossAnnual(): float
     {
-        return $this->grossMonthly * 12;
+        return $this->grossAnnual;
     }
 
     /**
@@ -57,7 +81,7 @@ class IncomeSource
      */
     public function getInssAnnual(): float
     {
-        return $this->inssWithheld * 12;
+        return $this->inssAnnual;
     }
 
     /**
@@ -65,7 +89,7 @@ class IncomeSource
      */
     public function getIrrfAnnual(): float
     {
-        return $this->irrfWithheld * 12;
+        return $this->irrfAnnual;
     }
 
     /**
@@ -92,9 +116,9 @@ class IncomeSource
     {
         return [
             'name' => $this->name,
-            'gross' => $this->grossMonthly,
-            'inss' => $this->inssWithheld,
-            'irrf' => $this->irrfWithheld,
+            'gross' => $this->grossAnnual,
+            'inss' => $this->inssAnnual,
+            'irrf' => $this->irrfAnnual,
             'type' => $this->type,
         ];
     }

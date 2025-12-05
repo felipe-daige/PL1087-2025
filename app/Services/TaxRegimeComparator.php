@@ -239,7 +239,7 @@ class TaxRegimeComparator
      */
     private function calculateInssDeductible(TaxInputData $input): float
     {
-        $totalInssAnnual = $input->getTotalInssWithheld() * 12;
+        $totalInssAnnual = $input->getTotalInssWithheld(); // Já retorna anual
         
         // Respeitar teto global do INSS
         return min($totalInssAnnual, self::INSS_CEILING_ANNUAL);

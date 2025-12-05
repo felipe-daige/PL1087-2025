@@ -463,6 +463,119 @@ function initTaxBreakdownChart() {
 }
 
 // ========================================
+// GRÁFICO 7: RENDA TOTAL VS. IMPOSTO TOTAL
+// ========================================
+function initIncomeVsTaxChart() {
+    const ctx = document.getElementById('incomeVsTaxChart');
+    if (!ctx || !window.chartData?.incomeVsTax) return;
+
+    const data = window.chartData.incomeVsTax;
+    
+    // Formatar valores para exibição
+    const formatValue = (value) => {
+        if (value >= 1000000) {
+            return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+        } else if (value >= 1000) {
+            return 'R$ ' + (value / 1000).toFixed(0) + 'k';
+        }
+        return 'R$ ' + value.toFixed(0);
+    };
+
+    new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Renda Total', 'Imposto Total'],
+            datasets: [
+                {
+                    label: 'Valor',
+                    data: [data.income, data.tax],
+                    backgroundColor: [CHART_COLORS.blue, CHART_COLORS.red],
+                    borderColor: [CHART_BORDERS.blue, CHART_BORDERS.red],
+                    borderWidth: 2,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        generateLabels: function(chart) {
+                            return [
+                                {
+                                    text: 'Renda Total',
+                                    fillStyle: CHART_COLORS.blue,
+                                    strokeStyle: CHART_BORDERS.blue,
+                                    hidden: false,
+                                    index: 0
+                                },
+                                {
+                                    text: 'Imposto Total',
+                                    fillStyle: CHART_COLORS.red,
+                                    strokeStyle: CHART_BORDERS.red,
+                                    hidden: false,
+                                    index: 1
+                                }
+                            ];
+                        },
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y || context.parsed;
+                            return context.dataset.label + ': ' + formatCurrency(value);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        },
+                        color: '#525252'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { 
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            if (value >= 1000000) {
+                                return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+                            } else if (value >= 1000) {
+                                return 'R$ ' + (value / 1000).toFixed(0) + 'k';
+                            }
+                            return 'R$ ' + value;
+                        },
+                        font: {
+                            size: 11
+                        },
+                        color: '#737373'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ========================================
 // NAVEGAÇÃO DAS TABS
 // ========================================
 function showTab(tabName) {
@@ -501,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initHoldingChart();
     initProjectionChart();
     initTaxBreakdownChart();
+    initIncomeVsTaxChart();
 });
 
 // ========================================

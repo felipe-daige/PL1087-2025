@@ -99,12 +99,36 @@ class TaxCalculatorService
         $irpfmAdditional = $produto2['additionalTaxDue'] ?? 0;
         $totalTaxWithIRPFM = $totalTraditionalTax + $irpfmAdditional;
 
-        // Imposto já pago/retido
-        $taxPaid = $input->getTotalTaxPaid();
-
-        // Saldo a pagar ou restituir
-        $balance = $totalTaxWithIRPFM - $taxPaid;
+        // ========================================
+        // LÓGICA CRÍTICA: Determinar qual regime vence
+        // ========================================
+        // IRPFM líquido (após crédito PJ)
+        $irpfmTax = $produto2['minimumTaxNet'] ?? 0;
+        // Imposto do regime geral (Simplificado ou Completo)
+        $generalTax = $totalTraditionalTax;
+        
+        // Determinar qual regime vence
+        $irpfmWins = $irpfmTax > $generalTax;
+        
+        // Calcular saldo final conforme regime vencedor
+        if ($irpfmWins) {
+            // CENÁRIO A: IRPFM vence - abate TODOS os impostos pagos (dedutíveis + exclusivos)
+            $taxPaidDeductible = $input->getTotalTaxPaidDeductibleInGeneral();
+            $taxPaidExclusive = $input->getTotalTaxPaidExclusive();
+            $balance = $irpfmTax - ($taxPaidDeductible + $taxPaidExclusive);
+        } else {
+            // CENÁRIO B: Regime Geral vence - abate APENAS impostos dedutíveis
+            // CRÍTICO: NÃO subtrai impostos de tributação exclusiva (JCP, Renda Fixa, Dividendos)
+            $taxPaidDeductible = $input->getTotalTaxPaidDeductibleInGeneral();
+            $balance = $generalTax - $taxPaidDeductible;
+        }
+        
         $isRefund = $balance < 0;
+        
+        // Manter compatibilidade: totalTaxWithIRPFM para exibição
+        // Mas o saldo já foi calculado corretamente acima
+        // Para exibição, manter o total de impostos pagos (para referência do usuário)
+        $taxPaid = $input->getTotalTaxPaid();
 
         // Renda total
         $totalIncome = $input->getTotalIncomeForIRPFM();
@@ -136,6 +160,18 @@ class TaxCalculatorService
                 'irpfmAdditional' => $irpfmAdditional,
                 'dividendTax' => $input->exemptIncome->getDividendTax(),
                 'jcpTax' => $input->exemptIncome->getJcpTax(),
+            ],
+
+            // Dados de Rendimentos Isentos/Exclusivos (para exibição no relatório)
+            'exemptIncome' => [
+                'dividendsTotal' => $input->exemptIncome->dividendsTotal,
+                'dividendsExcess' => $input->exemptIncome->dividendsExcess,
+                'dividendTax' => $input->exemptIncome->getDividendTax(),
+                'jcpTotal' => $input->exemptIncome->jcpTotal,
+                'jcpTax' => $input->exemptIncome->getJcpTax(),
+                'irrfJcpWithheld' => $input->exemptIncome->irrfJcpWithheld,
+                'irrfExclusiveOther' => $input->exemptIncome->irrfExclusiveOther,
+                'financialInvestments' => $input->exemptIncome->financialInvestments,
             ],
 
             // Indicadores
@@ -219,8 +255,8 @@ class TaxCalculatorService
             'taxExemptInvestments' => $input->exemptIncome->taxExemptInvestments,
             'fiiDividends' => $input->exemptIncome->fiiDividends,
             'incomeOther' => $input->getTotalRentalNetMonthly(),
-            'taxPaid' => $input->taxPaidOther + ($input->getTotalIrrfWithheld() * 12),
-            'totalInssRetido' => $input->getTotalInssWithheld(),
+            'taxPaid' => $input->taxPaidOther + $input->getTotalIrrfWithheld(), // Já retorna anual
+            'totalInssRetido' => $input->getTotalInssWithheld(), // Já retorna anual
             'dependents' => $input->dependents,
             'deductionHealth' => $input->deductionHealth,
             'deductionEducation' => $input->deductionEducation,
@@ -236,11 +272,35 @@ class TaxCalculatorService
             'ownershipPercentage' => $input->corporateData?->ownershipPercentage ?? 100,
         ];
 
-        // Calcular resultado final considerando IRPFM
-        $totalTax = $produto1['totalTax'] + ($produto2['additionalTaxDue'] ?? 0);
-        $taxPaid = $input->getTotalTaxPaid();
-        $finalResult = $totalTax - $taxPaid;
+        // ========================================
+        // LÓGICA CRÍTICA: Calcular resultado final conforme regime vencedor
+        // ========================================
+        // IRPFM líquido (após crédito PJ)
+        $irpfmTax = $produto2['minimumTaxNet'] ?? 0;
+        // Imposto do regime geral (Simplificado ou Completo)
+        $generalTax = $produto1['totalTax'];
+        
+        // Determinar qual regime vence
+        $irpfmWins = $irpfmTax > $generalTax;
+        
+        // Calcular saldo final conforme regime vencedor
+        if ($irpfmWins) {
+            // CENÁRIO A: IRPFM vence - abate TODOS os impostos pagos (dedutíveis + exclusivos)
+            $taxPaidDeductible = $input->getTotalTaxPaidDeductibleInGeneral();
+            $taxPaidExclusive = $input->getTotalTaxPaidExclusive();
+            $finalResult = $irpfmTax - ($taxPaidDeductible + $taxPaidExclusive);
+        } else {
+            // CENÁRIO B: Regime Geral vence - abate APENAS impostos dedutíveis
+            // CRÍTICO: NÃO subtrai impostos de tributação exclusiva (JCP, Renda Fixa, Dividendos)
+            $taxPaidDeductible = $input->getTotalTaxPaidDeductibleInGeneral();
+            $finalResult = $generalTax - $taxPaidDeductible;
+        }
+        
         $isNegativeFinalResult = $finalResult < 0;
+        
+        // Para compatibilidade: manter totalTax como soma tradicional + adicional IRPFM
+        $totalTax = $produto1['totalTax'] + ($produto2['additionalTaxDue'] ?? 0);
+        // Mas o finalResult já foi calculado corretamente acima conforme regime vencedor
 
         // Determinar estilo do resultado
         $resultLabel = 'SEM SALDO';

@@ -254,14 +254,9 @@
          DETALHAMENTO DO CÁLCULO
          ======================================== --}}
     <div class="bg-white p-4 rounded-xl shadow-sm border border-neutral-200">
-        <button type="button" onclick="toggleDetails()" class="w-full flex items-center justify-between text-sm font-semibold text-neutral-800">
-            <span>Detalhamento do Cálculo</span>
-            <svg id="detailsArrow" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-        </button>
+        <h3 class="text-sm font-semibold text-neutral-800 mb-4">Detalhamento do Cálculo</h3>
         
-        <div id="detailsContent" class="hidden mt-4 space-y-3 text-sm border-t border-neutral-100 pt-4">
+        <div id="detailsContent" class="space-y-3 text-sm">
             <div class="flex justify-between">
                 <span class="text-neutral-500">Renda Bruta Tributável:</span>
                 <span class="font-medium" id="displayGrossIncome">{{ $taxCalculatorService->irpfCurrency($grossTaxable) }}</span>

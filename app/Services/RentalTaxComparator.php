@@ -242,7 +242,7 @@ class RentalTaxComparator
      * - PIS/COFINS: 3,65% (cumulativo)
      * 
      * Após impostos PJ, a distribuição de lucros é tributada
-     * conforme Lei 15.270/2025 (10% sobre excedente de R$ 50k/mês)
+     * conforme Lei 15.270/2025 (10% sobre excedente acima de R$ 600k/ano - limite anualizado)
      */
     private function calculatePJScenario(TaxInputData $input): array
     {
@@ -283,7 +283,7 @@ class RentalTaxComparator
 
         // ========================================
         // TRIBUTAÇÃO DE DIVIDENDOS (Lei 15.270/2025)
-        // Art. 5º - 10% sobre excedente de R$ 50k/mês
+        // Art. 5º e Art. 6º-A - 10% sobre excedente acima de R$ 600k/ano (limite anualizado)
         // ========================================
         $dividendTax = 0;
         if ($distributableProfit > self::DIVIDEND_EXEMPTION_MONTHLY) {

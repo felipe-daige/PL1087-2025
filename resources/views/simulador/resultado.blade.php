@@ -25,6 +25,12 @@
     // Breakdown da renda
     $incomeBreakdown = $minimumTax['incomeBreakdown'] ?? [];
     
+    // Imposto sobre dividendos (para uso em todo o arquivo)
+    $dividendTax = $consolidated['exemptIncome']['dividendTax'] ?? ($consolidated['breakdown']['dividendTax'] ?? ($dividendTax ?? 0));
+    
+    // Estado do formulário (para compatibilidade)
+    $state = $state ?? [];
+    
     // Dados para os gráficos
     $chartIncomeData = [
         'taxable' => $incomeBreakdown['taxable'] ?? ($grossTaxable ?? 0),
@@ -57,6 +63,24 @@
         'base' => $baseTax,
         'dividends' => $dividendTax ?? 0,
         'irpfm' => $minimumTax['additionalTaxDue'] ?? 0,
+    ];
+    
+    // Cálculo de alíquotas efetivas comparativas (IRPFM vs Regime Geral)
+    $regimeTotalTax = $regimeComparison['totalTax'] ?? 0;
+    $irpfmWins = ($minimumTax['triggered'] ?? false) && 
+                (($minimumTax['minimumTaxNet'] ?? 0) > $regimeTotalTax);
+    $effectiveRateGeneral = $rendaTotal > 0 
+        ? ($regimeTotalTax / $rendaTotal) * 100 
+        : 0;
+    $effectiveRateIRPFM = ($minimumTax['triggered'] ?? false) && $rendaTotal > 0
+        ? (($minimumTax['minimumTaxNet'] ?? 0) / $rendaTotal) * 100
+        : 0;
+    $rateDifference = abs($effectiveRateIRPFM - $effectiveRateGeneral);
+    
+    // Dados para gráfico Renda vs. Imposto
+    $chartIncomeVsTaxData = [
+        'income' => $rendaTotal,
+        'tax' => $consolidated['totalTax'] ?? 0,
     ];
 @endphp
 
@@ -94,13 +118,78 @@
     </div>
 </div>
 
+{{-- Banner de Alerta IRPFM --}}
+@if($minimumTax['triggered'] ?? false)
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg shadow-lg p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold mb-1">IRPFM Ativado - Imposto Mínimo Aplicável</h3>
+                <p class="text-sm text-red-50 mb-3">
+                    Sua renda total excedeu R$ 600.000/ano. O Imposto de Renda Mínimo (IRPFM) foi aplicado conforme Art. 4º da Lei 15.270/2025.
+                </p>
+                <div class="flex flex-wrap items-center gap-4 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium">Alíquota Mínima:</span>
+                        <span class="font-bold text-lg">{{ number_format($minimumTax['minimumRate'] ?? 0, 2, ',', '.') }}%</span>
+                    </div>
+                    @if($irpfmWins)
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium">Regime Aplicado:</span>
+                        <span class="font-bold bg-white/20 px-2 py-1 rounded">IRPFM</span>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            <a href="#content-irpfm" onclick="showTab('irpfm'); return false;" class="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm">
+                Ver Detalhes →
+            </a>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- Cards de Métricas --}}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         {{-- Alíquota Efetiva --}}
-        <div class="bg-white rounded-lg shadow-sm border-t-4 border-blue-400 p-5">
+        <div class="bg-white rounded-lg shadow-sm border-t-4 {{ ($minimumTax['triggered'] ?? false) && $irpfmWins ? 'border-red-400' : 'border-blue-400' }} p-5">
             <p class="text-neutral-500 text-xs font-medium uppercase tracking-wider mb-2">Alíquota Efetiva</p>
-            <p class="text-2xl font-semibold text-neutral-900">{{ number_format($aliquotaEfetiva, 2, ',', '.') }}%</p>
+            @if(($minimumTax['triggered'] ?? false) && $effectiveRateIRPFM > 0)
+                {{-- Mostrar comparação quando IRPFM está ativo --}}
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-neutral-500">Regime Geral:</span>
+                        <span class="text-lg font-semibold {{ !$irpfmWins ? 'text-green-600' : 'text-neutral-600' }}">
+                            {{ number_format($effectiveRateGeneral, 2, ',', '.') }}%
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-neutral-500">IRPFM:</span>
+                        <span class="text-lg font-semibold {{ $irpfmWins ? 'text-red-600' : 'text-neutral-600' }}">
+                            {{ number_format($effectiveRateIRPFM, 2, ',', '.') }}%
+                        </span>
+                    </div>
+                    @if($rateDifference > 0.1)
+                    <div class="pt-2 border-t border-neutral-200">
+                        <p class="text-xs text-neutral-500">
+                            Diferença: 
+                            <span class="font-medium {{ $irpfmWins ? 'text-red-600' : 'text-green-600' }}">
+                                {{ $irpfmWins ? '+' : '-' }}{{ number_format($rateDifference, 2, ',', '.') }}%
+                            </span>
+                        </p>
+                    </div>
+                    @endif
+                </div>
+            @else
+                {{-- Mostrar valor único quando IRPFM não está ativo --}}
+                <p class="text-2xl font-semibold text-neutral-900">{{ number_format($aliquotaEfetiva, 2, ',', '.') }}%</p>
+            @endif
         </div>
 
         {{-- Renda Total --}}
@@ -300,6 +389,115 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- Tabela: Composição da Renda Total --}}
+                            <div class="mt-6 border-t border-neutral-200 pt-4">
+                                <h5 class="text-sm font-semibold text-neutral-700 mb-3">Composição da Renda Total</h5>
+                                <div class="space-y-2 text-sm">
+                                    @if(($incomeBreakdown['taxable'] ?? 0) > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">Salários/Pró-labore/13º:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($incomeBreakdown['taxable'] ?? 0) }}</span>
+                                    </div>
+                                    @endif
+                                    @if(($incomeBreakdown['rental'] ?? 0) > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">Aluguéis:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($incomeBreakdown['rental'] ?? 0) }}</span>
+                                    </div>
+                                    @endif
+                                    @if(($consolidated['exemptIncome']['dividendsTotal'] ?? ($incomeBreakdown['dividends'] ?? 0)) > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500 font-medium">Lucros e Dividendos Totais:</span>
+                                        <span class="font-semibold text-blue-600">{{ $taxService->irpfCurrency($consolidated['exemptIncome']['dividendsTotal'] ?? ($incomeBreakdown['dividends'] ?? 0)) }}</span>
+                                    </div>
+                                    @endif
+                                    @if(($incomeBreakdown['jcp'] ?? 0) > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">JCP:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($incomeBreakdown['jcp'] ?? 0) }}</span>
+                                    </div>
+                                    @endif
+                                    @if(($incomeBreakdown['financialInvestments'] ?? 0) > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">Aplicações Financeiras:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($incomeBreakdown['financialInvestments'] ?? 0) }}</span>
+                                    </div>
+                                    @endif
+                                    @if(($incomeBreakdown['taxExemptInvestments'] ?? 0) > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">LCI/LCA/CRI/CRA:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($incomeBreakdown['taxExemptInvestments'] ?? 0) }}</span>
+                                    </div>
+                                    @endif
+                                    @if(($incomeBreakdown['fiiDividends'] ?? 0) > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">Dividendos de FIIs:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($incomeBreakdown['fiiDividends'] ?? 0) }}</span>
+                                    </div>
+                                    @endif
+                                    @if(($incomeBreakdown['otherExempt'] ?? 0) > 0)
+                                    <div class="flex justify-between py-2">
+                                        <span class="text-neutral-500">Outros Isentos:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($incomeBreakdown['otherExempt'] ?? 0) }}</span>
+                                    </div>
+                                    @endif
+                                    <div class="flex justify-between py-2 pt-3 border-t-2 border-neutral-300 mt-2">
+                                        <span class="text-neutral-700 font-semibold">Total (Base IRPFM):</span>
+                                        <span class="font-bold text-neutral-900">{{ $taxService->irpfCurrency($minimumTax['totalIncome'] ?? 0) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Tabela: Impostos Já Pagos / Retidos --}}
+                            <div class="mt-6 border-t border-neutral-200 pt-4">
+                                <h5 class="text-sm font-semibold text-neutral-700 mb-3">Impostos Já Pagos / Retidos</h5>
+                                <div class="space-y-2 text-sm">
+                                    @php
+                                        $state = $state ?? [];
+                                        $totalIrrfRetido = $state['totalIrrfRetido'] ?? 0;
+                                        $taxPaidOther = ($state['taxPaid'] ?? 0) - $totalIrrfRetido;
+                                        $dividendTaxTable = $consolidated['exemptIncome']['dividendTax'] ?? ($consolidated['breakdown']['dividendTax'] ?? 0);
+                                        $jcpTax = $consolidated['exemptIncome']['jcpTax'] ?? ($consolidated['breakdown']['jcpTax'] ?? 0);
+                                        $irrfJcpWithheld = $consolidated['exemptIncome']['irrfJcpWithheld'] ?? 0;
+                                        $irrfExclusiveOther = $consolidated['exemptIncome']['irrfExclusiveOther'] ?? 0;
+                                    @endphp
+                                    @if($totalIrrfRetido > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">IRRF Retido (Salários/Pró-labore):</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($totalIrrfRetido) }}</span>
+                                    </div>
+                                    @endif
+                                    @if($taxPaidOther > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">Carnê-Leão:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($taxPaidOther) }}</span>
+                                    </div>
+                                    @endif
+                                    @if($dividendTaxTable > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500 font-medium">IRRF sobre Dividendos (10% sobre excedente):</span>
+                                        <span class="font-semibold text-blue-600">{{ $taxService->irpfCurrency($dividendTaxTable) }}</span>
+                                    </div>
+                                    @endif
+                                    @if($irrfJcpWithheld > 0 || $jcpTax > 0)
+                                    <div class="flex justify-between py-2 border-b border-neutral-100">
+                                        <span class="text-neutral-500">IRRF sobre JCP:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($irrfJcpWithheld > 0 ? $irrfJcpWithheld : $jcpTax) }}</span>
+                                    </div>
+                                    @endif
+                                    @if($irrfExclusiveOther > 0)
+                                    <div class="flex justify-between py-2">
+                                        <span class="text-neutral-500">IRRF sobre Outras Aplicações:</span>
+                                        <span class="font-medium">{{ $taxService->irpfCurrency($irrfExclusiveOther) }}</span>
+                                    </div>
+                                    @endif
+                                    <div class="flex justify-between py-2 pt-3 border-t-2 border-neutral-300 mt-2">
+                                        <span class="text-neutral-700 font-semibold">Total Impostos Pagos:</span>
+                                        <span class="font-bold text-neutral-900">{{ $taxService->irpfCurrency($consolidated['taxPaid'] ?? ($state['taxPaid'] ?? 0)) }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         @endif
                     </div>
 
@@ -377,6 +575,30 @@
                     <canvas id="taxBreakdownChart"></canvas>
                 </div>
             </div>
+
+            {{-- Gráfico Renda Total vs. Imposto Total --}}
+            <div class="bg-white rounded-lg border border-neutral-200 p-6">
+                <h2 class="text-base font-semibold text-neutral-900 mb-6">Renda Total vs. Imposto Total</h2>
+                <div class="chart-container h-64">
+                    <canvas id="incomeVsTaxChart"></canvas>
+                </div>
+                <div class="mt-4 flex items-center justify-center gap-6 text-sm">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                        <span class="text-neutral-600">Renda Total</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-red-500 rounded"></div>
+                        <span class="text-neutral-600">Imposto Total</span>
+                    </div>
+                    @if($rendaTotal > 0)
+                    <div class="flex items-center gap-2">
+                        <span class="text-neutral-500">Alíquota Efetiva:</span>
+                        <span class="font-semibold text-neutral-900">{{ number_format($aliquotaEfetiva, 2, ',', '.') }}%</span>
+                    </div>
+                    @endif
+                </div>
+            </div>
         </div>
 
         {{-- Coluna Lateral (1/3) --}}
@@ -394,9 +616,12 @@
                         <span class="text-neutral-500">(-) Deduções:</span>
                         <span class="font-medium text-green-600">{{ $taxService->irpfCurrency(max($simplifiedDiscount ?? 0, $totalDeductions ?? 0)) }}</span>
                     </div>
-                    @if(($dividendTax ?? 0) > 0)
+                    @php
+                        $dividendTax = $consolidated['exemptIncome']['dividendTax'] ?? ($consolidated['breakdown']['dividendTax'] ?? ($dividendTax ?? 0));
+                    @endphp
+                    @if($dividendTax > 0)
                     <div class="flex justify-between py-2 border-b border-neutral-100">
-                        <span class="text-neutral-500">(+) Dividendos:</span>
+                        <span class="text-neutral-500">(+) Imposto s/ Dividendos:</span>
                         <span class="font-medium text-neutral-900">{{ $taxService->irpfCurrency($dividendTax) }}</span>
                     </div>
                     @endif
@@ -410,10 +635,24 @@
                         <span class="text-neutral-500">Imposto Devido:</span>
                         <span class="font-semibold text-neutral-900">{{ $taxService->irpfCurrency($totalTaxLiability ?? 0) }}</span>
                     </div>
+                    @php
+                        // Quando IRPFM vence, todos os impostos são abatidos (incluindo dividendos)
+                        // Quando Regime Geral vence, apenas impostos dedutíveis são abatidos
+                        $irpfmWins = ($minimumTax['triggered'] ?? false) && 
+                                    (($minimumTax['minimumTaxNet'] ?? 0) > ($minimumTax['traditionalTax'] ?? 0));
+                        $taxPaidDisplay = $irpfmWins 
+                            ? ($consolidated['taxPaid'] ?? ($state['taxPaid'] ?? 0))  // Todos os impostos quando IRPFM vence
+                            : ($state['taxPaid'] ?? 0);  // Apenas dedutíveis quando Regime Geral vence
+                    @endphp
                     <div class="flex justify-between py-2 border-b border-neutral-100">
                         <span class="text-neutral-500">(-) Já Pago:</span>
-                        <span class="font-medium text-blue-600">{{ $taxService->irpfCurrency($state['taxPaid'] ?? 0) }}</span>
+                        <span class="font-medium text-blue-600">{{ $taxService->irpfCurrency($taxPaidDisplay) }}</span>
                     </div>
+                    @if($irpfmWins && ($consolidated['exemptIncome']['dividendTax'] ?? 0) > 0)
+                    <div class="flex justify-between py-1 text-xs text-neutral-400 italic pl-2">
+                        <span>Inclui: IRRF salários + Carnê-leão + Imposto s/ Dividendos + IRRF JCP + IRRF outras aplicações</span>
+                    </div>
+                    @endif
                     <div class="flex justify-between py-3 mt-2 border-t border-neutral-200">
                         <span class="font-medium text-neutral-900">Saldo Final:</span>
                         <span class="font-semibold {{ $isRestituicao ? 'text-green-600' : 'text-red-600' }}">
@@ -437,7 +676,7 @@
                     </div>
                     <div class="pb-3 border-b border-neutral-100">
                         <p class="font-medium text-neutral-700 mb-1">Art. 5º - Dividendos</p>
-                        <p class="text-neutral-500 text-xs">10% sobre dividendos &gt; R$ 50k/mês</p>
+                        <p class="text-neutral-500 text-xs">10% sobre excedente &gt; R$ 600k/ano</p>
                     </div>
                     <div>
                         <p class="font-medium text-neutral-700 mb-1">Trava PJ</p>
@@ -482,6 +721,10 @@
 @push('scripts')
 <script>
     window.chartData = {
+        incomeVsTax: {
+            income: {{ $chartIncomeVsTaxData['income'] ?? 0 }},
+            tax: {{ $chartIncomeVsTaxData['tax'] ?? 0 }}
+        },
         income: @json($chartIncomeData),
         regime: @json($chartRegimeData),
         irpfm: @json($chartIrpfmData),

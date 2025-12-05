@@ -86,6 +86,8 @@ class TaxInputData
             'tax_exempt_investments' => $request->input('taxExemptInvestments'),
             'fii_dividends' => $request->input('fiiDividends'),
             'other_exempt' => $request->input('otherExempt'),
+            'irrf_jcp_withheld' => $request->input('irrfJcpWithheld'),
+            'irrf_exclusive_other' => $request->input('irrfExclusiveOther'),
         ]);
 
         // Processar dados corporativos (se fornecidos)
@@ -139,7 +141,7 @@ class TaxInputData
     {
         return array_reduce(
             $this->incomeSources,
-            fn(float $total, IncomeSource $source) => $total + $source->grossMonthly,
+            fn(float $total, IncomeSource $source) => $total + $source->getGrossMonthly(),
             0.0
         );
     }
@@ -149,7 +151,11 @@ class TaxInputData
      */
     public function getTotalGrossAnnual(): float
     {
-        return $this->getTotalGrossMonthly() * 12;
+        return array_reduce(
+            $this->incomeSources,
+            fn(float $total, IncomeSource $source) => $total + $source->getGrossAnnual(),
+            0.0
+        );
     }
 
     /**
@@ -169,25 +175,25 @@ class TaxInputData
     }
 
     /**
-     * Total de INSS retido (todas as fontes)
+     * Total de INSS retido (todas as fontes) - retorna valor anual
      */
     public function getTotalInssWithheld(): float
     {
         return array_reduce(
             $this->incomeSources,
-            fn(float $total, IncomeSource $source) => $total + $source->inssWithheld,
+            fn(float $total, IncomeSource $source) => $total + $source->inssAnnual,
             0.0
         );
     }
 
     /**
-     * Total de IRRF retido (todas as fontes)
+     * Total de IRRF retido (todas as fontes) - retorna valor anual
      */
     public function getTotalIrrfWithheld(): float
     {
         return array_reduce(
             $this->incomeSources,
-            fn(float $total, IncomeSource $source) => $total + $source->irrfWithheld,
+            fn(float $total, IncomeSource $source) => $total + $source->irrfAnnual,
             0.0
         );
     }
@@ -258,14 +264,62 @@ class TaxInputData
 
     /**
      * Total de imposto já pago/retido (para cálculo do saldo)
+     * Inclui: IRRF retido (todas fontes), imposto sobre dividendos, JCP (prioritário manual),
+     * IRRF sobre outras aplicações e carnê-leão pago
      */
     public function getTotalTaxPaid(): float
     {
-        $irrfAnnual = $this->getTotalIrrfWithheld() * 12;
+        $irrfAnnual = $this->getTotalIrrfWithheld(); // Já retorna anual
         $dividendTax = $this->exemptIncome->getDividendTax();
-        $jcpTax = $this->exemptIncome->getJcpTax();
+        $jcpTax = $this->exemptIncome->getJcpTax(); // Já usa prioridade (manual > cálculo)
+        $irrfExclusiveOther = $this->exemptIncome->irrfExclusiveOther;
 
-        return $irrfAnnual + $dividendTax + $jcpTax + $this->taxPaidOther;
+        return $irrfAnnual + $dividendTax + $jcpTax + $irrfExclusiveOther + $this->taxPaidOther;
+    }
+
+    /**
+     * Total de impostos pagos que são dedutíveis no regime geral
+     * Inclui: IRRF retido sobre salários (repeater), carnê-leão e IRRF sobre aluguéis
+     * 
+     * Estes impostos podem abater o IR de salários no regime normal (Simplificado/Completo)
+     * 
+     * @see Lei 15.270/2025 - Regime Geral
+     */
+    public function getTotalTaxPaidDeductibleInGeneral(): float
+    {
+        // IRRF retido sobre salários, pró-labore, autônomo, aposentadoria
+        $irrfAnnual = $this->getTotalIrrfWithheld(); // Já retorna anual
+        
+        // Carnê-leão pago sobre aluguéis e exterior
+        $taxPaidOther = $this->taxPaidOther;
+        
+        // Nota: IRRF sobre aluguéis não está sendo retido separadamente no sistema atual
+        // Se houver necessidade futura, pode ser adicionado aqui
+        
+        return $irrfAnnual + $taxPaidOther;
+    }
+
+    /**
+     * Total de impostos pagos de tributação exclusiva
+     * Inclui: IRRF sobre JCP, IRRF sobre aplicações financeiras e imposto sobre dividendos excedentes
+     * 
+     * Estes impostos NÃO podem abater o IR de salários no regime geral.
+     * Apenas são dedutíveis quando o IRPFM vence (pois a base do IRPFM inclui JCP e Renda Fixa).
+     * 
+     * @see Lei 15.270/2025 - Art. 4º (IRPFM) vs Art. 3º-A (Regime Geral)
+     */
+    public function getTotalTaxPaidExclusive(): float
+    {
+        // IRRF retido sobre JCP (prioritário manual, senão cálculo de 15%)
+        $jcpTax = $this->exemptIncome->getJcpTax();
+        
+        // IRRF retido sobre outras aplicações (Renda Fixa, Fundos, Ganhos de Capital)
+        $irrfExclusiveOther = $this->exemptIncome->irrfExclusiveOther;
+        
+        // Imposto sobre dividendos excedentes (10% sobre excedente acima de R$ 600k/ano - limite anualizado)
+        $dividendTax = $this->exemptIncome->getDividendTax();
+        
+        return $jcpTax + $irrfExclusiveOther + $dividendTax;
     }
 
     /**

@@ -144,47 +144,50 @@ function addIncomeSource() {
     newRow.setAttribute('data-index', newIndex);
     
     newRow.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            <div class="md:col-span-3">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Tipo</label>
-                <select name="incomeSources[${newIndex}][type]" class="form-select w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-                    <option value="salary">Salário CLT</option>
-                    <option value="prolabore">Pró-Labore</option>
-                    <option value="autonomous">Autônomo</option>
-                    <option value="retirement">Aposentadoria</option>
-                </select>
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Nome da Fonte</label>
-                <input type="text" name="incomeSources[${newIndex}][name]" placeholder="Ex: Empresa XYZ" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Bruto Mensal</label>
-                <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="incomeSources[${newIndex}][gross]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+        <div class="flex justify-between items-start mb-3">
+            <h5 class="text-sm font-semibold text-neutral-800">Fonte de Renda #${newIndex + 1}</h5>
+            <button type="button" onclick="removeIncomeSource(${newIndex})" class="remove-income-source-btn p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Tipo</label>
+                    <select name="incomeSources[${newIndex}][type]" class="form-select w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                        <option value="salary">Salário CLT</option>
+                        <option value="prolabore">Pró-Labore</option>
+                        <option value="autonomous">Autônomo</option>
+                        <option value="retirement">Aposentadoria</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Nome da Fonte</label>
+                    <input type="text" name="incomeSources[${newIndex}][name]" placeholder="Ex: Empresa XYZ" class="w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">INSS Retido</label>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Bruto Anual</label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="incomeSources[${newIndex}][inss]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="number" step="0.01" name="incomeSources[${newIndex}][gross]" placeholder="0,00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">IRRF Retido</label>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">INSS Retido ou Pago (GPS) <span class="text-neutral-500 font-normal">(anual)</span></label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="incomeSources[${newIndex}][irrf]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="number" step="0.01" name="incomeSources[${newIndex}][inss]" placeholder="0,00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
-            <div class="md:col-span-1">
-                <button type="button" onclick="removeIncomeSource(${newIndex})" class="remove-income-source-btn w-full p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
-                    <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </button>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">IRRF Retido <span class="text-neutral-500 font-normal">(anual)</span></label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="number" step="0.01" name="incomeSources[${newIndex}][irrf]" placeholder="0,00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                </div>
             </div>
         </div>
     `;
@@ -230,6 +233,12 @@ function reindexIncomeSources() {
     const remainingRows = container.querySelectorAll('.income-source-row');
     remainingRows.forEach((row, newIndex) => {
         row.setAttribute('data-index', newIndex);
+        
+        // Atualizar cabeçalho enumerado
+        const header = row.querySelector('h5');
+        if (header) {
+            header.textContent = `Fonte de Renda #${newIndex + 1}`;
+        }
         
         const typeSelect = row.querySelector('select[name*="[type]"]');
         const nameInput = row.querySelector('input[name*="[name]"]');
@@ -308,48 +317,58 @@ function addRentalProperty() {
     newRow.setAttribute('data-index', newIndex);
     
     newRow.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
-                <input type="text" name="rentalProperties[${newIndex}][name]" placeholder="Ex: Apt Centro" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-            </div>
-            <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Aluguel Bruto</label>
-                <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][gross]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+        <div class="flex justify-between items-start mb-3">
+            <h5 class="text-sm font-semibold text-neutral-800">Imóvel #${newIndex + 1}</h5>
+            <button type="button" onclick="removeRentalProperty(${newIndex})" class="remove-rental-btn p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
+                    <input type="text" name="rentalProperties[${newIndex}][name]" placeholder="Ex: Apt Centro" class="w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Periodicidade</label>
+                    <select name="rentalProperties[${newIndex}][periodicity]" class="form-select rental-periodicity-select w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" onchange="updateRentalLabels(${newIndex})">
+                        <option value="monthly">Mensais</option>
+                        <option value="annual">Anuais</option>
+                    </select>
                 </div>
             </div>
-            <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Taxa Adm.</label>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][admin_fee]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][gross]" placeholder="0,00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
-            <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][admin_fee]" placeholder="0,00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">
                     IPTU
-                    <span class="block text-neutral-500 font-normal text-xs">(mensal)</span>
+                    <span class="rental-label-iptu block text-neutral-500 font-normal text-xs"></span>
                 </label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][iptu]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][iptu]" placeholder="0,00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
-            <div class="md:col-span-1 flex gap-2">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-neutral-700 mb-1">Condomínio</label>
-                    <div class="relative">
-                        <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                        <input type="number" step="0.01" name="rentalProperties[${newIndex}][condo]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-                    </div>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][condo]" placeholder="0,00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
-                <button type="button" onclick="removeRentalProperty(${newIndex})" class="remove-rental-btn self-end p-2 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </button>
             </div>
         </div>
     `;
@@ -395,7 +414,14 @@ function reindexRentalProperties() {
     remainingRows.forEach((row, newIndex) => {
         row.setAttribute('data-index', newIndex);
         
+        // Atualizar cabeçalho enumerado
+        const header = row.querySelector('h5');
+        if (header) {
+            header.textContent = `Imóvel #${newIndex + 1}`;
+        }
+        
         const nameInput = row.querySelector('input[name*="[name]"]');
+        const periodicitySelect = row.querySelector('select[name*="[periodicity]"]');
         const grossInput = row.querySelector('input[name*="[gross]"]');
         const adminFeeInput = row.querySelector('input[name*="[admin_fee]"]');
         const iptuInput = row.querySelector('input[name*="[iptu]"]');
@@ -403,6 +429,10 @@ function reindexRentalProperties() {
         const removeBtn = row.querySelector('.remove-rental-btn');
         
         if (nameInput) nameInput.name = `rentalProperties[${newIndex}][name]`;
+        if (periodicitySelect) {
+            periodicitySelect.name = `rentalProperties[${newIndex}][periodicity]`;
+            periodicitySelect.setAttribute('onchange', `updateRentalLabels(${newIndex})`);
+        }
         if (grossInput) grossInput.name = `rentalProperties[${newIndex}][gross]`;
         if (adminFeeInput) adminFeeInput.name = `rentalProperties[${newIndex}][admin_fee]`;
         if (iptuInput) iptuInput.name = `rentalProperties[${newIndex}][iptu]`;
@@ -448,15 +478,15 @@ function collectStateFromForm() {
     const incomeSources = collectIncomeSources();
     const rentalProperties = collectRentalProperties();
     
-    // Calcular totais das fontes de renda
-    let totalGrossMonthly = 0;
+    // Calcular totais das fontes de renda (agora em base anual)
+    let totalGrossAnnual = 0;
     let totalInss = 0;
     let totalIrrf = 0;
     
     incomeSources.forEach(source => {
-        totalGrossMonthly += source.gross || 0;
-        totalInss += source.inss || 0;
-        totalIrrf += source.irrf || 0;
+        totalGrossAnnual += source.gross || 0; // Já é anual
+        totalInss += source.inss || 0; // Já é anual
+        totalIrrf += source.irrf || 0; // Já é anual
     });
 
     // Calcular totais de aluguéis
@@ -475,13 +505,16 @@ function collectStateFromForm() {
         seriousIllness: checkboxValue('seriousIllness'),
         incomeSources: incomeSources,
         rentalProperties: rentalProperties,
-        incomeMonthly: totalGrossMonthly,
+        incomeMonthly: totalGrossAnnual / 12, // Converter para mensal quando necessário
+        incomeAnnual: totalGrossAnnual, // Manter valor anual também
         income13: numberValue('income13'),
         // Rendimentos isentos/exclusivos
         dividendsTotal: numberValue('dividendsTotal'),
         dividendsExcess: numberValue('dividendsExcess'),
         jcpTotal: numberValue('jcpTotal'),
+        irrfJcpWithheld: numberValue('irrfJcpWithheld'),
         financialInvestments: numberValue('financialInvestments'),
+        irrfExclusiveOther: numberValue('irrfExclusiveOther'),
         taxExemptInvestments: numberValue('taxExemptInvestments'),
         fiiDividends: numberValue('fiiDividends'),
         otherExempt: numberValue('otherExempt'),
@@ -514,10 +547,10 @@ function collectStateFromForm() {
 // ========================================
 
 function computeIrpfMetrics(state) {
-    // Calcular renda bruta total
-    let totalGrossMonthly = state.incomeMonthly || 0;
+    // Calcular renda bruta total (agora em base anual)
+    let totalGrossAnnual = state.incomeAnnual || (state.incomeMonthly ? state.incomeMonthly * 12 : 0);
     
-    let grossTaxable = (totalGrossMonthly * 12) + (state.totalRentalNet * 12);
+    let grossTaxable = totalGrossAnnual + (state.totalRentalNet * 12);
     
     // Calcular idade a partir da data de nascimento completa
     let age = 0;
@@ -567,19 +600,29 @@ function computeIrpfMetrics(state) {
     // Imposto sobre dividendos (Art. 5º Lei 15.270)
     const dividendTax = state.dividendsExcess > 0 ? state.dividendsExcess * 0.10 : 0;
 
+    // Imposto sobre JCP: prioriza valor manual, senão calcula 15%
+    const jcpTax = (state.irrfJcpWithheld && state.irrfJcpWithheld > 0) 
+        ? state.irrfJcpWithheld 
+        : ((state.jcpTotal || 0) * 0.15);
+
     const tax13 = state.income13 > 0 ? calculateMonthlyTaxIRPF(state.income13) : 0;
 
     const bestTaxOption = Math.min(taxSimplified, taxLegal);
     const isSimplifiedBetter = taxSimplified < taxLegal;
     const totalTaxLiability = bestTaxOption + dividendTax + tax13;
     
-    const totalTaxPaid = (state.taxPaid || 0) + (state.totalIrrfRetido || 0);
+    // Total imposto pago: IRRF retido + imposto dividendos + JCP (prioritário manual) + IRRF outras aplicações + carnê-leão
+    const totalTaxPaid = (state.taxPaid || 0) 
+        + (state.totalIrrfRetido || 0) 
+        + dividendTax 
+        + jcpTax 
+        + (state.irrfExclusiveOther || 0);
     const finalResult = totalTaxLiability - totalTaxPaid;
     const isNegativeFinalResult = finalResult < 0;
     const displayFinalResult = isNegativeFinalResult ? Math.abs(finalResult) : finalResult;
 
     // Renda total para IRPFM
-    const totalIncome = (totalGrossMonthly * 12)
+    const totalIncome = totalGrossAnnual
         + (state.totalRentalGross * 12)
         + state.income13
         + (state.dividendsTotal || 0)
@@ -660,7 +703,16 @@ function updateSummaryUI(state, metrics) {
     setText('displayLegalDed', `- ${formatCurrency(metrics.totalDeductions)}`);
     setText('displayDivTax', `+ ${formatCurrency(metrics.dividendTax)}`);
     setText('displayTaxDue', formatCurrency(metrics.totalTaxLiability));
-    const totalTaxPaid = (state.taxPaid || 0) + (state.totalIrrfRetido || 0);
+    // Calcular total imposto pago (mesma lógica do computeIrpfMetrics)
+    const dividendTax = state.dividendsExcess > 0 ? state.dividendsExcess * 0.10 : 0;
+    const jcpTax = (state.irrfJcpWithheld && state.irrfJcpWithheld > 0) 
+        ? state.irrfJcpWithheld 
+        : ((state.jcpTotal || 0) * 0.15);
+    const totalTaxPaid = (state.taxPaid || 0) 
+        + (state.totalIrrfRetido || 0) 
+        + dividendTax 
+        + jcpTax 
+        + (state.irrfExclusiveOther || 0);
     setText('displayTaxPaid', `- ${formatCurrency(totalTaxPaid)}`);
 
     const finalResultValue = document.getElementById('finalResultValue');

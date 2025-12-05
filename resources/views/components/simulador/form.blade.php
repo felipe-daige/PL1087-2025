@@ -97,47 +97,50 @@
                 <div id="incomeSourcesContainer" class="space-y-4">
                     @foreach($incomeSources as $index => $source)
                     <div class="income-source-row bg-neutral-50 p-4 rounded-lg border border-neutral-200" data-index="{{ $index }}">
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Tipo</label>
-                                <select name="incomeSources[{{ $index }}][type]" class="form-select w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-                                    <option value="salary" {{ ($source['type'] ?? 'salary') === 'salary' ? 'selected' : '' }}>Salário CLT</option>
-                                    <option value="prolabore" {{ ($source['type'] ?? '') === 'prolabore' ? 'selected' : '' }}>Pró-Labore</option>
-                                    <option value="autonomous" {{ ($source['type'] ?? '') === 'autonomous' ? 'selected' : '' }}>Autônomo</option>
-                                    <option value="retirement" {{ ($source['type'] ?? '') === 'retirement' ? 'selected' : '' }}>Aposentadoria</option>
-                                </select>
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Nome da Fonte</label>
-                                <input type="text" name="incomeSources[{{ $index }}][name]" value="{{ e($source['name'] ?? '') }}" placeholder="Ex: Empresa XYZ" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Bruto Mensal</label>
-                                <div class="relative">
-                                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                                    <input type="number" step="0.01" name="incomeSources[{{ $index }}][gross]" value="{{ e($source['gross'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                        <div class="flex justify-between items-start mb-3">
+                            <h5 class="text-sm font-semibold text-neutral-800">Fonte de Renda #{{ $index + 1 }}</h5>
+                            <button type="button" onclick="removeIncomeSource({{ $index }})" class="remove-income-source-btn p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors {{ count($incomeSources) <= 1 ? 'hidden' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-1">Tipo</label>
+                                    <select name="incomeSources[{{ $index }}][type]" class="form-select w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                                        <option value="salary" {{ ($source['type'] ?? 'salary') === 'salary' ? 'selected' : '' }}>Salário CLT</option>
+                                        <option value="prolabore" {{ ($source['type'] ?? '') === 'prolabore' ? 'selected' : '' }}>Pró-Labore</option>
+                                        <option value="autonomous" {{ ($source['type'] ?? '') === 'autonomous' ? 'selected' : '' }}>Autônomo</option>
+                                        <option value="retirement" {{ ($source['type'] ?? '') === 'retirement' ? 'selected' : '' }}>Aposentadoria</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-1">Nome da Fonte</label>
+                                    <input type="text" name="incomeSources[{{ $index }}][name]" value="{{ e($source['name'] ?? '') }}" placeholder="Ex: Empresa XYZ" class="w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                                 </div>
                             </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">INSS Retido ou Pago (GPS) <span class="text-neutral-500 font-normal">(mensal)</span></label>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-1">Bruto Anual</label>
                                 <div class="relative">
-                                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                                    <input type="number" step="0.01" name="incomeSources[{{ $index }}][inss]" value="{{ e($source['inss'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                                    <input type="text" name="incomeSources[{{ $index }}][gross]" value="{{ e($source['gross'] ?? '') }}" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                                 </div>
                             </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">IRRF Retido <span class="text-neutral-500 font-normal">(mensal)</span></label>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-1">INSS Retido ou Pago (GPS) <span class="text-neutral-500 font-normal">(anual)</span></label>
                                 <div class="relative">
-                                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                                    <input type="number" step="0.01" name="incomeSources[{{ $index }}][irrf]" value="{{ e($source['irrf'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                                    <input type="text" name="incomeSources[{{ $index }}][inss]" value="{{ e($source['inss'] ?? '') }}" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                                 </div>
                             </div>
-                            <div class="md:col-span-1">
-                                <button type="button" onclick="removeIncomeSource({{ $index }})" class="remove-income-source-btn w-full p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors {{ count($incomeSources) <= 1 ? 'hidden' : '' }}">
-                                    <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-1">IRRF Retido <span class="text-neutral-500 font-normal">(anual)</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                                    <input type="text" name="incomeSources[{{ $index }}][irrf]" value="{{ e($source['irrf'] ?? '') }}" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -159,8 +162,8 @@
                 </label>
                 <div class="relative max-w-xs">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                    <input type="number" step="0.01" id="bookExpenses" name="bookExpenses" 
-                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                    <input type="text" id="bookExpenses" name="bookExpenses" 
+                           class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('bookExpenses', $state['bookExpenses'] ?? '')) }}">
                 </div>
                 <p class="text-xs text-neutral-400 mt-1">Despesas operacionais dedutíveis da receita bruta (essencial para médicos/advogados/autônomos).</p>
@@ -171,8 +174,8 @@
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="income13">13º Salário (Total Anual)</label>
                 <div class="relative max-w-xs">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                    <input type="number" step="0.01" id="income13" name="income13" 
-                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                    <input type="text" id="income13" name="income13" 
+                           class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('income13', $state['income13'] ?? '')) }}">
                 </div>
                 <p class="text-xs text-neutral-400 mt-1">Tributação exclusiva na fonte (não soma à base mensal).</p>
@@ -208,55 +211,58 @@
                 <div id="rentalPropertiesContainer" class="space-y-4">
                     @foreach($rentalProperties as $index => $property)
                     <div class="rental-property-row bg-neutral-50 p-4 rounded-lg border border-neutral-200" data-index="{{ $index }}">
-                        <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
-                                <input type="text" name="rentalProperties[{{ $index }}][name]" value="{{ e($property['name'] ?? '') }}" placeholder="Ex: Apt Centro" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-                            </div>
-                            <div class="md:col-span-1">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Periodicidade</label>
-                                <select name="rentalProperties[{{ $index }}][periodicity]" class="form-select rental-periodicity-select w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" onchange="updateRentalLabels({{ $index }})">
-                                    <option value="monthly" {{ ($property['periodicity'] ?? 'monthly') === 'monthly' ? 'selected' : '' }}>Mensais</option>
-                                    <option value="annual" {{ ($property['periodicity'] ?? '') === 'annual' ? 'selected' : '' }}>Anuais</option>
-                                </select>
-                            </div>
-                            <div class="md:col-span-1">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
-                                <div class="relative">
-                                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                                    <input type="number" step="0.01" name="rentalProperties[{{ $index }}][gross]" value="{{ e($property['gross'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                        <div class="flex justify-between items-start mb-3">
+                            <h5 class="text-sm font-semibold text-neutral-800">Imóvel #{{ $index + 1 }}</h5>
+                            <button type="button" onclick="removeRentalProperty({{ $index }})" class="remove-rental-btn p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors {{ count($rentalProperties) <= 1 ? 'hidden' : '' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
+                                    <input type="text" name="rentalProperties[{{ $index }}][name]" value="{{ e($property['name'] ?? '') }}" placeholder="Ex: Apt Centro" class="w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-1">Periodicidade</label>
+                                    <select name="rentalProperties[{{ $index }}][periodicity]" class="form-select rental-periodicity-select w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" onchange="updateRentalLabels({{ $index }})">
+                                        <option value="monthly" {{ ($property['periodicity'] ?? 'monthly') === 'monthly' ? 'selected' : '' }}>Mensais</option>
+                                        <option value="annual" {{ ($property['periodicity'] ?? '') === 'annual' ? 'selected' : '' }}>Anuais</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="md:col-span-1">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
                                 <div class="relative">
-                                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                                    <input type="number" step="0.01" name="rentalProperties[{{ $index }}][admin_fee]" value="{{ e($property['admin_fee'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                                    <input type="text" name="rentalProperties[{{ $index }}][gross]" value="{{ e($property['gross'] ?? '') }}" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                                 </div>
                             </div>
-                            <div class="md:col-span-1">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                                    <input type="text" name="rentalProperties[{{ $index }}][admin_fee]" value="{{ e($property['admin_fee'] ?? '') }}" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-1">
                                     IPTU
                                     <span class="rental-label-iptu block text-neutral-500 font-normal text-xs"></span>
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                                    <input type="number" step="0.01" name="rentalProperties[{{ $index }}][iptu]" value="{{ e($property['iptu'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                                    <input type="text" name="rentalProperties[{{ $index }}][iptu]" value="{{ e($property['iptu'] ?? '') }}" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                                 </div>
                             </div>
-                            <div class="md:col-span-1 flex gap-2">
-                                <div class="flex-1">
-                                    <label class="block text-xs font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
-                                    <div class="relative">
-                                        <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                                        <input type="number" step="0.01" name="rentalProperties[{{ $index }}][condo]" value="{{ e($property['condo'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-                                    </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                                    <input type="text" name="rentalProperties[{{ $index }}][condo]" value="{{ e($property['condo'] ?? '') }}" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                                 </div>
-                                <button type="button" onclick="removeRentalProperty({{ $index }})" class="remove-rental-btn self-end p-2 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors {{ count($rentalProperties) <= 1 ? 'hidden' : '' }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -276,8 +282,8 @@
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="taxPaid">Carnê-Leão Pago no Ano</label>
                 <div class="relative max-w-xs">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                    <input type="number" step="0.01" id="taxPaid" name="taxPaid" 
-                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                    <input type="text" id="taxPaid" name="taxPaid" 
+                           class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="Total pago no ano" value="{{ e($irpfFieldValue('taxPaid', $state['taxPaid'] ?? '')) }}">
                 </div>
                 <p class="text-xs text-neutral-400 mt-1">Imposto antecipado sobre aluguéis e exterior (será deduzido do saldo final).</p>
@@ -313,29 +319,30 @@
             </div>
 
             {{-- Saúde --}}
-            <div>
+            <div class="bg-neutral-50 p-4 rounded-lg">
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="deductionHealth">
                     Gastos com Saúde <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                     <span class="text-green-600 text-xs font-normal">(sem limite)</span>
                 </label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                    <input type="number" step="0.01" id="deductionHealth" name="deductionHealth" 
-                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                    <input type="text" id="deductionHealth" name="deductionHealth" 
+                           class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('deductionHealth', $state['deductionHealth'] ?? '')) }}">
                 </div>
+                <p class="text-xs text-neutral-400 mt-1">Gastos médicos, odontológicos e com planos de saúde são totalmente dedutíveis.</p>
             </div>
 
             {{-- Educação --}}
-            <div>
+            <div class="bg-neutral-50 p-4 rounded-lg">
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="deductionEducation">
                     Gastos com Educação <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                 </label>
                 <span class="text-amber-600 text-xs font-normal block mb-1">(limite R$ 3.561,50/pessoa)</span>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                    <input type="number" step="0.01" id="deductionEducation" name="deductionEducation" 
-                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                    <input type="text" id="deductionEducation" name="deductionEducation" 
+                           class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('deductionEducation', $state['deductionEducation'] ?? '')) }}">
                 </div>
                 <p class="text-xs text-amber-600 mt-1 font-medium">
@@ -345,29 +352,30 @@
             </div>
 
             {{-- PGBL --}}
-            <div class="col-span-1 md:col-span-2">
+            <div class="bg-neutral-50 p-4 rounded-lg">
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="deductionPGBL">
                     Previdência Privada (PGBL) <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                     <span class="text-amber-600 text-xs font-normal">(limite 12% da renda tributável anual)</span>
                 </label>
-                <div class="relative max-w-md">
+                <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                    <input type="number" step="0.01" id="deductionPGBL" name="deductionPGBL" 
-                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                    <input type="text" id="deductionPGBL" name="deductionPGBL" 
+                           class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('deductionPGBL', $state['deductionPGBL'] ?? '')) }}">
                 </div>
+                <p class="text-xs text-neutral-400 mt-1">Contribuições para PGBL podem ser deduzidas até 12% da renda tributável anual.</p>
             </div>
 
             {{-- Pensão Alimentícia Judicial --}}
-            <div class="col-span-1 md:col-span-2">
+            <div class="bg-neutral-50 p-4 rounded-lg">
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="alimonyPaid">
                     Pensão Alimentícia Judicial <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                     <span class="text-green-600 text-xs font-normal">(dedução legal integral)</span>
                 </label>
-                <div class="relative max-w-md">
+                <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                    <input type="number" step="0.01" id="alimonyPaid" name="alimonyPaid" 
-                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                    <input type="text" id="alimonyPaid" name="alimonyPaid" 
+                           class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('alimonyPaid', $state['alimonyPaid'] ?? '')) }}">
                 </div>
                 <p class="text-xs text-neutral-400 mt-1">Dedução legal que afeta ambos os regimes (Simplificado e Completo).</p>
@@ -400,28 +408,37 @@
                     Lucros e Dividendos
                     <span class="text-xs font-normal text-brand-600">(Art. 5º Lei 15.270)</span>
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="dividendsTotal">Total Recebido no Ano</label>
+                        <div class="mb-1 h-10 flex items-end">
+                            <label class="block text-sm font-medium text-neutral-700" for="dividendsTotal">Total Recebido no Ano</label>
+                        </div>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="dividendsTotal" name="dividendsTotal" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                            <input type="text" id="dividendsTotal" name="dividendsTotal" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('dividendsTotal', $state['dividendsTotal'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Total de dividendos recebidos no ano.</p>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="dividendsExcess">
-                            Valor Tributado (> R$ 50k/mês) <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
-                            <span class="text-red-500 text-xs">10% na fonte</span>
-                        </label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="dividendsExcess" name="dividendsExcess" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
-                                   placeholder="0,00" value="{{ e($irpfFieldValue('dividendsExcess', $state['dividendsExcess'] ?? '')) }}">
+                    
+                    {{-- Campo hidden para enviar o valor calculado --}}
+                    <input type="hidden" id="dividendsExcess" name="dividendsExcess" value="{{ e($irpfFieldValue('dividendsExcess', $state['dividendsExcess'] ?? '')) }}">
+                    
+                    {{-- Informação calculada automaticamente --}}
+                    <div id="dividendsTaxInfo" class="p-3 bg-blue-50 border border-blue-200 rounded-lg hidden">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-xs font-medium text-blue-900 mb-1">Cálculo Automático de Tributação</p>
+                                <div class="text-xs text-blue-700 space-y-0.5">
+                                    <p><span class="font-medium">Valor tributado:</span> <span id="dividendsExcessDisplay" class="font-semibold">R$ 0,00</span> (excesso acima de R$ 600.000/ano)</p>
+                                    <p><span class="font-medium">Imposto (10%):</span> <span id="dividendsTaxDisplay" class="font-semibold text-red-600">R$ 0,00</span></p>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-xs text-brand-600 mt-1">Soma dos valores que excederam R$ 50.000/mês por fonte.</p>
                     </div>
                 </div>
             </div>
@@ -434,7 +451,7 @@
                     </svg>
                     Outros Rendimentos
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="jcpTotal">
                             JCP Recebido <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
@@ -442,19 +459,45 @@
                         </label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="jcpTotal" name="jcpTotal" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                            <input type="text" id="jcpTotal" name="jcpTotal" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('jcpTotal', $state['jcpTotal'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Juros sobre Capital Próprio recebidos no ano.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="irrfJcpWithheld">
+                            IRRF Retido sobre JCP <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-neutral-400">R$</span>
+                            <input type="text" id="irrfJcpWithheld" name="irrfJcpWithheld" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                                   placeholder="0,00" value="{{ e($irpfFieldValue('irrfJcpWithheld', $state['irrfJcpWithheld'] ?? '')) }}">
+                        </div>
+                        <p class="text-xs text-neutral-400 mt-1">Prioritário sobre cálculo automático de 15%</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="financialInvestments">Aplicações Financeiras <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="financialInvestments" name="financialInvestments" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                            <input type="text" id="financialInvestments" name="financialInvestments" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('financialInvestments', $state['financialInvestments'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Rendimentos de aplicações financeiras tributáveis.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="irrfExclusiveOther">
+                            IRRF Retido sobre Outras Aplicações <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-neutral-400">R$</span>
+                            <input type="text" id="irrfExclusiveOther" name="irrfExclusiveOther" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                                   placeholder="0,00" value="{{ e($irpfFieldValue('irrfExclusiveOther', $state['irrfExclusiveOther'] ?? '')) }}">
+                        </div>
+                        <p class="text-xs text-neutral-400 mt-1">Ex: Renda Fixa, Fundos, Ganhos de Capital na fonte</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="taxExemptInvestments">
@@ -463,13 +506,12 @@
                         </label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="taxExemptInvestments" name="taxExemptInvestments" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                            <input type="text" id="taxExemptInvestments" name="taxExemptInvestments" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('taxExemptInvestments', $state['taxExemptInvestments'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Rendimentos isentos de imposto de renda.</p>
                     </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="fiiDividends">
                             Dividendos de FIIs <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
@@ -477,19 +519,23 @@
                         </label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="fiiDividends" name="fiiDividends" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                            <input type="text" id="fiiDividends" name="fiiDividends" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('fiiDividends', $state['fiiDividends'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Dividendos recebidos de Fundos Imobiliários.</p>
                     </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="otherExempt">Outros Isentos <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="otherExempt" name="otherExempt" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                            <input type="text" id="otherExempt" name="otherExempt" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('otherExempt', $state['otherExempt'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Outros rendimentos isentos de imposto de renda.</p>
                     </div>
                 </div>
             </div>
@@ -509,46 +555,51 @@
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="accountingProfit">Lucro Contábil da Empresa <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="accountingProfit" name="accountingProfit" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
+                            <input type="text" id="accountingProfit" name="accountingProfit" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('accountingProfit', $state['accountingProfit'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Lucro contábil total da empresa no ano.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="distributedProfit">Lucro Distribuído a Você <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="distributedProfit" name="distributedProfit" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
+                            <input type="text" id="distributedProfit" name="distributedProfit" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('distributedProfit', $state['distributedProfit'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Valor do lucro distribuído a você como sócio.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="irpjPaid">IRPJ Pago pela Empresa <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="irpjPaid" name="irpjPaid" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
+                            <input type="text" id="irpjPaid" name="irpjPaid" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('irpjPaid', $state['irpjPaid'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Imposto de Renda da Pessoa Jurídica pago.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="csllPaid">CSLL Paga pela Empresa <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
-                            <input type="number" step="0.01" id="csllPaid" name="csllPaid" 
-                                   class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
+                            <input type="text" id="csllPaid" name="csllPaid" 
+                                   class="currency-input pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
                                    placeholder="0,00" value="{{ e($irpfFieldValue('csllPaid', $state['csllPaid'] ?? '')) }}">
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Contribuição Social sobre o Lucro Líquido paga.</p>
                     </div>
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="ownershipPercentage">Sua Participação (%)</label>
-                        <div class="relative">
+                        <div class="relative max-w-xs">
                             <input type="number" step="0.01" id="ownershipPercentage" name="ownershipPercentage" 
                                    class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 outline-none" 
                                    placeholder="100" value="{{ e($irpfFieldValue('ownershipPercentage', $state['ownershipPercentage'] ?? 100)) }}">
                             <span class="absolute right-3 top-3 text-neutral-400">%</span>
                         </div>
+                        <p class="text-xs text-neutral-400 mt-1">Percentual de participação na empresa.</p>
                     </div>
                 </div>
             </div>

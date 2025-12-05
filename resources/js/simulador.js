@@ -18,9 +18,8 @@ function parseInputNumber(value) {
     if (typeof value === 'number') {
         return Number.isFinite(value) ? value : 0;
     }
-    const normalized = String(value).replace(/\./g, '').replace(',', '.');
-    const parsed = parseFloat(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
+    // Usar removeCurrencyMask para lidar com valores formatados
+    return removeCurrencyMask(value);
 }
 
 function formatCurrency(value) {
@@ -31,6 +30,161 @@ function formatCurrency(value) {
         maximumFractionDigits: 2,
     });
     return `${prefix}R$ ${formatted}`;
+}
+
+/**
+ * Remove a formatação de moeda brasileira e retorna o valor numérico
+ * @param {string|number} value - Valor formatado (ex: "R$ 1.234,56" ou "1.234,56") ou número
+ * @returns {number} - Valor numérico
+ */
+function removeCurrencyMask(value) {
+    if (value === null || value === undefined || value === '') {
+        return 0;
+    }
+    // Se já é um número, retornar diretamente
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : 0;
+    }
+    
+    // Converter para string e remover formatação
+    let cleaned = String(value)
+        .replace(/R\$\s*/g, '')  // Remove "R$" e espaços
+        .replace(/\s/g, '')      // Remove todos os espaços
+        .trim();
+    
+    // Se estiver vazio após limpeza, retornar 0
+    if (!cleaned) return 0;
+    
+    // Verificar se tem vírgula (formato brasileiro) ou ponto (formato internacional)
+    const hasComma = cleaned.includes(',');
+    const hasDot = cleaned.includes('.');
+    
+    if (hasComma && hasDot) {
+        // Formato brasileiro: 1.234,56 - remover pontos (milhar) e substituir vírgula por ponto
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else if (hasComma && !hasDot) {
+        // Apenas vírgula: 1234,56 - substituir vírgula por ponto
+        cleaned = cleaned.replace(',', '.');
+    } else if (!hasComma && hasDot) {
+        // Apenas ponto: pode ser 1234.56 (decimal) ou 1.234 (milhar sem decimal)
+        // Se tiver mais de um ponto, é formato de milhar, remover todos
+        const dotCount = (cleaned.match(/\./g) || []).length;
+        if (dotCount > 1) {
+            // Formato de milhar: 1.234.567 - remover todos os pontos
+            cleaned = cleaned.replace(/\./g, '');
+        }
+        // Caso contrário, manter o ponto como decimal
+    }
+    
+    // Remover qualquer caractere não numérico exceto ponto decimal
+    cleaned = cleaned.replace(/[^\d.]/g, '');
+    
+    const parsed = parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Aplica máscara de moeda brasileira em um input
+ * @param {HTMLInputElement} input - Elemento input a ser formatado
+ */
+function applyCurrencyMask(input) {
+    if (!input) return;
+    
+    // Obter valor atual e posição do cursor
+    let value = input.value;
+    const cursorPos = input.selectionStart || 0;
+    
+    // Remover tudo exceto números, vírgula e ponto
+    let cleaned = value.replace(/[^\d,.]/g, '');
+    
+    // Se não há nada, limpar
+    if (!cleaned) {
+        input.value = '';
+        return;
+    }
+    
+    // Tratar múltiplos separadores decimais - manter apenas o último
+    const parts = cleaned.split(/[,.]/);
+    if (parts.length > 2) {
+        cleaned = parts.slice(0, -1).join('') + ',' + parts[parts.length - 1];
+    }
+    
+    // Converter ponto para vírgula (padrão brasileiro)
+    cleaned = cleaned.replace(/\./g, ',');
+    
+    // Se houver múltiplas vírgulas, manter apenas a última como decimal
+    const lastCommaIndex = cleaned.lastIndexOf(',');
+    if (lastCommaIndex !== -1) {
+        const beforeComma = cleaned.substring(0, lastCommaIndex).replace(/,/g, '');
+        const afterComma = cleaned.substring(lastCommaIndex + 1).replace(/\D/g, '').substring(0, 2);
+        cleaned = beforeComma + ',' + afterComma;
+    }
+    
+    // Separar parte inteira e decimal
+    const finalParts = cleaned.split(',');
+    let integerPart = finalParts[0].replace(/\D/g, '');
+    const decimalPart = finalParts[1] || '';
+    
+    // Limitar parte decimal a 2 dígitos
+    const limitedDecimal = decimalPart.substring(0, 2);
+    
+    // Adicionar separadores de milhar na parte inteira
+    if (integerPart) {
+        integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    
+    // Montar valor formatado
+    let formattedValue = integerPart;
+    if (limitedDecimal) {
+        formattedValue += ',' + limitedDecimal;
+    }
+    
+    // Atualizar o valor do input
+    input.value = formattedValue;
+}
+
+/**
+ * Configura a máscara de moeda em um input
+ * @param {HTMLInputElement} input - Elemento input a ser configurado
+ */
+function setupCurrencyMask(input) {
+    if (!input) return;
+    
+    // Aplicar máscara ao digitar
+    input.addEventListener('input', function(e) {
+        applyCurrencyMask(e.target);
+    });
+    
+    // Aplicar máscara ao perder o foco (garantir formatação completa com 2 decimais)
+    input.addEventListener('blur', function(e) {
+        const numericValue = removeCurrencyMask(e.target.value);
+        if (numericValue > 0) {
+            const formatted = numericValue.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+            e.target.value = formatted;
+        } else if (e.target.value.trim() === '' || numericValue === 0) {
+            e.target.value = '';
+        }
+    });
+    
+    // Permitir navegação com setas e delete/backspace
+    input.addEventListener('keydown', function(e) {
+        // Permitir: Backspace, Delete, Tab, Escape, Enter, setas, Home, End
+        if ([8, 9, 27, 13, 46, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+            // Permitir: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+            (e.keyCode === 65 && e.ctrlKey === true) ||
+            (e.keyCode === 67 && e.ctrlKey === true) ||
+            (e.keyCode === 86 && e.ctrlKey === true) ||
+            (e.keyCode === 88 && e.ctrlKey === true)) {
+            return;
+        }
+        // Garantir que é um número ou vírgula/ponto
+        if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105) && e.keyCode !== 188 && e.keyCode !== 190) {
+            e.preventDefault();
+        }
+    });
 }
 
 // ========================================
@@ -144,47 +298,50 @@ function addIncomeSource() {
     newRow.setAttribute('data-index', newIndex);
     
     newRow.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            <div class="md:col-span-3">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Tipo</label>
-                <select name="incomeSources[${newIndex}][type]" class="form-select w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-                    <option value="salary">Salário CLT</option>
-                    <option value="prolabore">Pró-Labore</option>
-                    <option value="autonomous">Autônomo</option>
-                    <option value="retirement">Aposentadoria</option>
-                </select>
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Nome da Fonte</label>
-                <input type="text" name="incomeSources[${newIndex}][name]" placeholder="Ex: Empresa XYZ" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Bruto Mensal</label>
-                <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="incomeSources[${newIndex}][gross]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+        <div class="flex justify-between items-start mb-3">
+            <h5 class="text-sm font-semibold text-neutral-800">Fonte de Renda #${newIndex + 1}</h5>
+            <button type="button" onclick="removeIncomeSource(${newIndex})" class="remove-income-source-btn p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Tipo</label>
+                    <select name="incomeSources[${newIndex}][type]" class="form-select w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                        <option value="salary">Salário CLT</option>
+                        <option value="prolabore">Pró-Labore</option>
+                        <option value="autonomous">Autônomo</option>
+                        <option value="retirement">Aposentadoria</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Nome da Fonte</label>
+                    <input type="text" name="incomeSources[${newIndex}][name]" placeholder="Ex: Empresa XYZ" class="w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">INSS Retido</label>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Bruto Anual</label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="incomeSources[${newIndex}][inss]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="text" name="incomeSources[${newIndex}][gross]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">IRRF Retido</label>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">INSS Retido ou Pago (GPS) <span class="text-neutral-500 font-normal">(anual)</span></label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="incomeSources[${newIndex}][irrf]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="text" name="incomeSources[${newIndex}][inss]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
-            <div class="md:col-span-1">
-                <button type="button" onclick="removeIncomeSource(${newIndex})" class="remove-income-source-btn w-full p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
-                    <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </button>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">IRRF Retido <span class="text-neutral-500 font-normal">(anual)</span></label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="text" name="incomeSources[${newIndex}][irrf]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                </div>
             </div>
         </div>
     `;
@@ -201,6 +358,11 @@ function addIncomeSource() {
         // Adicionar handler para Enter
         if (input.type !== 'checkbox' && input.type !== 'submit' && input.type !== 'button') {
             input.addEventListener('keydown', handleEnterKey);
+        }
+        
+        // Aplicar máscara de moeda em campos monetários
+        if (input.classList.contains('currency-input')) {
+            setupCurrencyMask(input);
         }
     });
     
@@ -230,6 +392,12 @@ function reindexIncomeSources() {
     const remainingRows = container.querySelectorAll('.income-source-row');
     remainingRows.forEach((row, newIndex) => {
         row.setAttribute('data-index', newIndex);
+        
+        // Atualizar cabeçalho enumerado
+        const header = row.querySelector('h5');
+        if (header) {
+            header.textContent = `Fonte de Renda #${newIndex + 1}`;
+        }
         
         const typeSelect = row.querySelector('select[name*="[type]"]');
         const nameInput = row.querySelector('input[name*="[name]"]');
@@ -310,55 +478,58 @@ function addRentalProperty() {
     newRow.setAttribute('data-index', newIndex);
     
     newRow.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
-                <input type="text" name="rentalProperties[${newIndex}][name]" placeholder="Ex: Apt Centro" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-            </div>
-            <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Periodicidade</label>
-                <select name="rentalProperties[${newIndex}][periodicity]" class="form-select rental-periodicity-select w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" onchange="updateRentalLabels(${newIndex})">
-                    <option value="monthly">Mensais</option>
-                    <option value="annual">Anuais</option>
-                </select>
-            </div>
-            <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
-                <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][gross]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+        <div class="flex justify-between items-start mb-3">
+            <h5 class="text-sm font-semibold text-neutral-800">Imóvel #${newIndex + 1}</h5>
+            <button type="button" onclick="removeRentalProperty(${newIndex})" class="remove-rental-btn p-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
+                    <input type="text" name="rentalProperties[${newIndex}][name]" placeholder="Ex: Apt Centro" class="w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700 mb-1">Periodicidade</label>
+                    <select name="rentalProperties[${newIndex}][periodicity]" class="form-select rental-periodicity-select w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" onchange="updateRentalLabels(${newIndex})">
+                        <option value="monthly">Mensais</option>
+                        <option value="annual">Anuais</option>
+                    </select>
                 </div>
             </div>
-            <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][admin_fee]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="text" name="rentalProperties[${newIndex}][gross]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
-            <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="text" name="rentalProperties[${newIndex}][admin_fee]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">
                     IPTU
                     <span class="rental-label-iptu block text-neutral-500 font-normal text-xs"></span>
                 </label>
                 <div class="relative">
-                    <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][iptu]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="text" name="rentalProperties[${newIndex}][iptu]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
-            <div class="md:col-span-1 flex gap-2">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
-                    <div class="relative">
-                        <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
-                        <input type="number" step="0.01" name="rentalProperties[${newIndex}][condo]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
-                    </div>
+            <div>
+                <label class="block text-sm font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
+                    <input type="text" name="rentalProperties[${newIndex}][condo]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
-                <button type="button" onclick="removeRentalProperty(${newIndex})" class="remove-rental-btn self-end p-2 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </button>
             </div>
         </div>
     `;
@@ -378,6 +549,11 @@ function addRentalProperty() {
         // Adicionar handler para Enter
         if (input.type !== 'checkbox' && input.type !== 'submit' && input.type !== 'button') {
             input.addEventListener('keydown', handleEnterKey);
+        }
+        
+        // Aplicar máscara de moeda em campos monetários
+        if (input.classList.contains('currency-input')) {
+            setupCurrencyMask(input);
         }
     });
     
@@ -407,6 +583,12 @@ function reindexRentalProperties() {
     const remainingRows = container.querySelectorAll('.rental-property-row');
     remainingRows.forEach((row, newIndex) => {
         row.setAttribute('data-index', newIndex);
+        
+        // Atualizar cabeçalho enumerado
+        const header = row.querySelector('h5');
+        if (header) {
+            header.textContent = `Imóvel #${newIndex + 1}`;
+        }
         
         const nameInput = row.querySelector('input[name*="[name]"]');
         const periodicitySelect = row.querySelector('select[name*="[periodicity]"]');
@@ -498,15 +680,15 @@ function collectStateFromForm() {
     const incomeSources = collectIncomeSources();
     const rentalProperties = collectRentalProperties();
     
-    // Calcular totais das fontes de renda
-    let totalGrossMonthly = 0;
+    // Calcular totais das fontes de renda (agora em base anual)
+    let totalGrossAnnual = 0;
     let totalInss = 0;
     let totalIrrf = 0;
     
     incomeSources.forEach(source => {
-        totalGrossMonthly += source.gross || 0;
-        totalInss += source.inss || 0;
-        totalIrrf += source.irrf || 0;
+        totalGrossAnnual += source.gross || 0; // Já é anual
+        totalInss += source.inss || 0; // Já é anual
+        totalIrrf += source.irrf || 0; // Já é anual
     });
 
     // Calcular totais de aluguéis (considerando periodicidade)
@@ -533,13 +715,16 @@ function collectStateFromForm() {
         seriousIllness: checkboxValue('seriousIllness'),
         incomeSources: incomeSources,
         rentalProperties: rentalProperties,
-        incomeMonthly: totalGrossMonthly,
+        incomeMonthly: totalGrossAnnual / 12, // Converter para mensal quando necessário
+        incomeAnnual: totalGrossAnnual, // Manter valor anual também
         income13: numberValue('income13'),
         // Rendimentos isentos/exclusivos
         dividendsTotal: numberValue('dividendsTotal'),
         dividendsExcess: numberValue('dividendsExcess'),
         jcpTotal: numberValue('jcpTotal'),
+        irrfJcpWithheld: numberValue('irrfJcpWithheld'),
         financialInvestments: numberValue('financialInvestments'),
+        irrfExclusiveOther: numberValue('irrfExclusiveOther'),
         taxExemptInvestments: numberValue('taxExemptInvestments'),
         fiiDividends: numberValue('fiiDividends'),
         otherExempt: numberValue('otherExempt'),
@@ -568,14 +753,96 @@ function collectStateFromForm() {
 }
 
 // ========================================
+// CÁLCULO AUTOMÁTICO DE DIVIDENDOS
+// ========================================
+
+/**
+ * Calcula o valor tributado de dividendos acima do limite anualizado
+ * 
+ * Conforme Lei 15.270/2025 - Art. 5º e Art. 6º-A:
+ * - Limite de isenção: R$ 50.000/mês × 12 = R$ 600.000/ano
+ * - Base de cálculo: APENAS o excedente acima de R$ 600.000/ano (incidência marginal)
+ * - Alíquota: 10% sobre o excedente
+ * - O imposto é RETIDO NA FONTE pela pessoa jurídica
+ * 
+ * Lógica:
+ * - Se totalAnual <= R$ 600.000: excesso = 0 (sem tributação)
+ * - Se totalAnual > R$ 600.000: excesso = totalAnual - R$ 600.000
+ * - Imposto = excesso × 10%
+ * 
+ * Exemplo:
+ * - Total anual: R$ 720.000
+ * - Excesso anual: R$ 720.000 - R$ 600.000 = R$ 120.000
+ * - Imposto (10%): R$ 12.000
+ * 
+ * @param {number} totalAnnual Total anual de dividendos recebidos
+ * @returns {number} Valor anual do excesso tributado (base de cálculo)
+ */
+function calculateDividendsExcess(totalAnnual) {
+    if (!totalAnnual || totalAnnual <= 0) return 0;
+    
+    // Limite anualizado: R$ 50.000/mês × 12 = R$ 600.000/ano
+    const ANNUAL_EXEMPTION_LIMIT = 600000;
+    
+    // Se não exceder o limite, não há excesso tributável
+    if (totalAnnual <= ANNUAL_EXEMPTION_LIMIT) return 0;
+    
+    // Base de cálculo: apenas o excedente (incidência marginal)
+    return totalAnnual - ANNUAL_EXEMPTION_LIMIT;
+}
+
+/**
+ * Atualiza automaticamente o campo dividendsExcess quando dividendsTotal muda
+ * E exibe informações sobre a tributação
+ */
+function updateDividendsExcess() {
+    const dividendsTotalInput = document.getElementById('dividendsTotal');
+    const dividendsExcessInput = document.getElementById('dividendsExcess');
+    const dividendsTaxInfo = document.getElementById('dividendsTaxInfo');
+    const dividendsExcessDisplay = document.getElementById('dividendsExcessDisplay');
+    const dividendsTaxDisplay = document.getElementById('dividendsTaxDisplay');
+    
+    if (!dividendsTotalInput || !dividendsExcessInput) return;
+    
+    const totalValue = parseInputNumber(dividendsTotalInput.value);
+    const calculatedExcess = calculateDividendsExcess(totalValue);
+    const calculatedTax = calculatedExcess * 0.10; // 10% sobre o excesso
+    
+    // Atualizar campo hidden (sempre enviar valor numérico, mesmo que zero)
+    dividendsExcessInput.value = calculatedExcess.toFixed(2);
+    
+    // Mostrar/ocultar informações e atualizar valores
+    if (calculatedExcess > 0 && dividendsTaxInfo && dividendsExcessDisplay && dividendsTaxDisplay) {
+        dividendsTaxInfo.classList.remove('hidden');
+        dividendsExcessDisplay.textContent = calculatedExcess.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+            style: 'currency',
+            currency: 'BRL'
+        });
+        dividendsTaxDisplay.textContent = calculatedTax.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+            style: 'currency',
+            currency: 'BRL'
+        });
+    } else if (dividendsTaxInfo) {
+        dividendsTaxInfo.classList.add('hidden');
+    }
+    
+    // Disparar evento para recalcular métricas
+    dividendsExcessInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// ========================================
 // CÁLCULO DE MÉTRICAS
 // ========================================
 
 function computeIrpfMetrics(state) {
-    // Calcular renda bruta total
-    let totalGrossMonthly = state.incomeMonthly || 0;
+    // Calcular renda bruta total (agora em base anual)
+    let totalGrossAnnual = state.incomeAnnual || (state.incomeMonthly ? state.incomeMonthly * 12 : 0);
     
-    let grossTaxable = (totalGrossMonthly * 12) + (state.totalRentalNet * 12);
+    let grossTaxable = totalGrossAnnual + (state.totalRentalNet * 12);
     
     // Calcular idade a partir da data de nascimento completa
     let age = 0;
@@ -622,22 +889,52 @@ function computeIrpfMetrics(state) {
     const baseLegal = Math.max(0, grossTaxable - totalDeductions);
     const taxLegal = calculateProgressiveTaxIRPF(baseLegal);
 
-    // Imposto sobre dividendos (Art. 5º Lei 15.270)
+    // Imposto sobre dividendos (Art. 5º e Art. 6º-A Lei 15.270/2025)
+    // 10% sobre o excesso acima de R$ 600.000/ano (limite anualizado: R$ 50k/mês × 12)
+    // Base de cálculo: apenas o excedente (incidência marginal)
     const dividendTax = state.dividendsExcess > 0 ? state.dividendsExcess * 0.10 : 0;
+
+    // Imposto sobre JCP: prioriza valor manual, senão calcula 15%
+    const jcpTax = (state.irrfJcpWithheld && state.irrfJcpWithheld > 0) 
+        ? state.irrfJcpWithheld 
+        : ((state.jcpTotal || 0) * 0.15);
 
     const tax13 = state.income13 > 0 ? calculateMonthlyTaxIRPF(state.income13) : 0;
 
     const bestTaxOption = Math.min(taxSimplified, taxLegal);
     const isSimplifiedBetter = taxSimplified < taxLegal;
-    const totalTaxLiability = bestTaxOption + dividendTax + tax13;
     
-    const totalTaxPaid = (state.taxPaid || 0) + (state.totalIrrfRetido || 0);
+    // Incluir IRPFM adicional se disponível
+    const irpfmAdditional = parseInputNumber(window.IRPFM_ADDITIONAL || 0);
+    const totalTaxLiability = bestTaxOption + dividendTax + tax13 + irpfmAdditional;
+    
+    // Determinar qual regime vence (IRPFM ou Regime Geral)
+    // IRPFM vence quando há adicional de IRPFM (irpfmAdditional > 0)
+    const irpfmWins = irpfmAdditional > 0;
+    
+    // Total imposto pago dedutível no regime geral (sempre dedutível)
+    const taxPaidDeductible = (state.taxPaid || 0) 
+        + (state.totalIrrfRetido || 0);
+    
+    // Total imposto pago de tributação exclusiva (só dedutível quando IRPFM vence)
+    // Inclui: imposto sobre dividendos, JCP, IRRF sobre outras aplicações
+    const taxPaidExclusive = dividendTax 
+        + jcpTax 
+        + (state.irrfExclusiveOther || 0);
+    
+    // Conforme Lei 15.270/2025:
+    // - Quando IRPFM vence: abate TODOS os impostos (dedutíveis + exclusivos)
+    // - Quando Regime Geral vence: abate APENAS impostos dedutíveis (NÃO abate exclusivos)
+    const totalTaxPaid = irpfmWins 
+        ? (taxPaidDeductible + taxPaidExclusive)  // IRPFM: abate tudo
+        : taxPaidDeductible;  // Regime Geral: abate apenas dedutíveis
+    
     const finalResult = totalTaxLiability - totalTaxPaid;
     const isNegativeFinalResult = finalResult < 0;
     const displayFinalResult = isNegativeFinalResult ? Math.abs(finalResult) : finalResult;
 
     // Renda total para IRPFM
-    const totalIncome = (totalGrossMonthly * 12)
+    const totalIncome = totalGrossAnnual
         + (state.totalRentalGross * 12)
         + state.income13
         + (state.dividendsTotal || 0)
@@ -685,6 +982,7 @@ function computeIrpfMetrics(state) {
         simplifiedDiscount,
         totalDeductions,
         dividendTax,
+        irpfmAdditional,
         totalTaxLiability,
         taxPaid: state.taxPaid,
         finalResult,
@@ -716,9 +1014,45 @@ function updateSummaryUI(state, metrics) {
     setText('displayGrossIncome', formatCurrency(metrics.grossTaxable));
     setText('displaySimplifiedDisc', `- ${formatCurrency(metrics.simplifiedDiscount)}`);
     setText('displayLegalDed', `- ${formatCurrency(metrics.totalDeductions)}`);
-    setText('displayDivTax', `+ ${formatCurrency(metrics.dividendTax)}`);
+    if (metrics.dividendTax > 0) {
+        setText('displayDivTax', `+ ${formatCurrency(metrics.dividendTax)}`);
+    }
+    // Exibir IRPFM se aplicável
+    const irpfmEl = document.getElementById('displayIrpfm');
+    if (irpfmEl) {
+        if (metrics.irpfmAdditional > 0) {
+            irpfmEl.textContent = `+ ${formatCurrency(metrics.irpfmAdditional)}`;
+            irpfmEl.parentElement.classList.remove('hidden');
+        } else {
+            irpfmEl.parentElement.classList.add('hidden');
+        }
+    }
     setText('displayTaxDue', formatCurrency(metrics.totalTaxLiability));
-    const totalTaxPaid = (state.taxPaid || 0) + (state.totalIrrfRetido || 0);
+    // Calcular total imposto pago (mesma lógica do computeIrpfMetrics)
+    const dividendTax = state.dividendsExcess > 0 ? state.dividendsExcess * 0.10 : 0;
+    const jcpTax = (state.irrfJcpWithheld && state.irrfJcpWithheld > 0) 
+        ? state.irrfJcpWithheld 
+        : ((state.jcpTotal || 0) * 0.15);
+    
+    // Determinar qual regime vence (IRPFM ou Regime Geral)
+    const irpfmWins = metrics.irpfmAdditional > 0;
+    
+    // Total imposto pago dedutível no regime geral (sempre dedutível)
+    const taxPaidDeductible = (state.taxPaid || 0) 
+        + (state.totalIrrfRetido || 0);
+    
+    // Total imposto pago de tributação exclusiva (só dedutível quando IRPFM vence)
+    const taxPaidExclusive = dividendTax 
+        + jcpTax 
+        + (state.irrfExclusiveOther || 0);
+    
+    // Conforme Lei 15.270/2025:
+    // - Quando IRPFM vence: abate TODOS os impostos (dedutíveis + exclusivos)
+    // - Quando Regime Geral vence: abate APENAS impostos dedutíveis (NÃO abate exclusivos)
+    const totalTaxPaid = irpfmWins 
+        ? (taxPaidDeductible + taxPaidExclusive)  // IRPFM: abate tudo
+        : taxPaidDeductible;  // Regime Geral: abate apenas dedutíveis
+    
     setText('displayTaxPaid', `- ${formatCurrency(totalTaxPaid)}`);
 
     const finalResultValue = document.getElementById('finalResultValue');
@@ -1044,7 +1378,32 @@ function setupRealtimeCalculation() {
         if (input.type !== 'checkbox' && input.type !== 'submit' && input.type !== 'button') {
             input.addEventListener('keydown', handleEnterKey, true);
         }
+        
+        // Aplicar máscara de moeda em campos monetários
+        if (input.classList.contains('currency-input')) {
+            setupCurrencyMask(input);
+            // Formatar valor inicial se houver
+            if (input.value) {
+                const numericValue = removeCurrencyMask(input.value);
+                if (numericValue > 0) {
+                    const formatted = numericValue.toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    });
+                    input.value = formatted;
+                }
+            }
+        }
     });
+    
+    // Adicionar listener específico para cálculo automático de dividendos
+    const dividendsTotalInput = document.getElementById('dividendsTotal');
+    if (dividendsTotalInput) {
+        dividendsTotalInput.addEventListener('input', () => {
+            updateDividendsExcess();
+            recalculateSummary();
+        });
+    }
     
     updateIncomeRemoveButtons();
     updateRentalRemoveButtons();
@@ -1057,6 +1416,9 @@ function setupRealtimeCalculation() {
             updateRentalLabels(parseInt(index, 10));
         }
     });
+    
+    // Calcular dividendsExcess inicial se houver valor em dividendsTotal
+    updateDividendsExcess();
     
     recalculateSummary();
 }
