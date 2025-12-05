@@ -1,13 +1,12 @@
 {
     "version": 2,
-      "framework": null,
+    "framework": null,
     "functions": {
         "api/index.php": { "runtime": "vercel-php@0.7.4" }
     },
-    "routes": [{
-        "src": "/(.*)",
-        "dest": "/api/index.php"
-    }],
+    "rewrites": [
+        { "source": "/((?!js/|css/|favicon.ico|robots.txt).*)", "destination": "/api/index.php" }
+    ],
     "env": {
         "APP_ENV": "production",
         "APP_DEBUG": "true",
