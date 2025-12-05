@@ -197,6 +197,11 @@ function addIncomeSource() {
     inputs.forEach(input => {
         input.addEventListener('input', recalculateSummary);
         input.addEventListener('change', recalculateSummary);
+        
+        // Adicionar handler para Enter
+        if (input.type !== 'checkbox' && input.type !== 'submit' && input.type !== 'button') {
+            input.addEventListener('keydown', handleEnterKey);
+        }
     });
     
     recalculateSummary();
@@ -353,6 +358,11 @@ function addRentalProperty() {
     const inputs = newRow.querySelectorAll('input');
     inputs.forEach(input => {
         input.addEventListener('input', recalculateSummary);
+        
+        // Adicionar handler para Enter
+        if (input.type !== 'checkbox' && input.type !== 'submit' && input.type !== 'button') {
+            input.addEventListener('keydown', handleEnterKey);
+        }
     });
     
     recalculateSummary();
@@ -853,14 +863,114 @@ function initCharts() {
 }
 
 // ========================================
+// NAVEGAÇÃO COM ENTER
+// ========================================
+
+function handleEnterKey(event) {
+    // Se não for Enter, não fazer nada
+    if (event.key !== 'Enter') {
+        return;
+    }
+    
+    // Prevenir submit padrão do formulário
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const currentInput = event.target;
+    const form = currentInput.closest('form');
+    if (!form) return;
+    
+    // Obter todos os campos focáveis na etapa atual
+    const currentStep = currentInput.closest('.step-content');
+    if (!currentStep) return;
+    
+    // Coletar todos os campos focáveis na etapa atual (apenas inputs, selects e textareas)
+    const focusableElements = currentStep.querySelectorAll(
+        'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([readonly]):not([disabled]), ' +
+        'select:not([disabled]), ' +
+        'textarea:not([readonly]):not([disabled])'
+    );
+    
+    // Converter NodeList para Array para facilitar manipulação
+    const focusableArray = Array.from(focusableElements);
+    
+    // Encontrar o índice do campo atual
+    const currentIndex = focusableArray.indexOf(currentInput);
+    
+    if (currentIndex === -1) return;
+    
+    // Tentar encontrar o próximo campo
+    let nextField = null;
+    
+    // Procurar próximo campo focável após o atual
+    for (let i = currentIndex + 1; i < focusableArray.length; i++) {
+        const element = focusableArray[i];
+        // Verificar se o elemento está visível
+        if (element.offsetParent !== null) {
+            nextField = element;
+            break;
+        }
+    }
+    
+    // Se encontrou próximo campo, focar nele
+    if (nextField) {
+        nextField.focus();
+        // Se for um input de texto ou número, selecionar o conteúdo
+        if (nextField.tagName === 'INPUT' && (nextField.type === 'text' || nextField.type === 'number')) {
+            nextField.select();
+        }
+        return;
+    }
+    
+    // Se não há próximo campo na etapa atual, verificar se há próxima etapa
+    const currentStepId = currentStep.id;
+    const stepNumber = parseInt(currentStepId.replace('step', ''));
+    
+    if (stepNumber < 5) {
+        // Avançar para próxima etapa
+        nextStep(stepNumber + 1);
+        
+        // Focar no primeiro campo da próxima etapa após um pequeno delay
+        setTimeout(() => {
+            const nextStepElement = document.getElementById(`step${stepNumber + 1}`);
+            if (nextStepElement) {
+                const firstField = nextStepElement.querySelector(
+                    'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([readonly]):not([disabled]), ' +
+                    'select:not([disabled]), ' +
+                    'textarea:not([readonly]):not([disabled])'
+                );
+                if (firstField && firstField.offsetParent !== null) {
+                    firstField.focus();
+                    if (firstField.tagName === 'INPUT' && (firstField.type === 'text' || firstField.type === 'number')) {
+                        firstField.select();
+                    }
+                }
+            }
+        }, 150);
+    } else {
+        // Última etapa - se for o último campo, submeter o formulário
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.click();
+        }
+    }
+}
+
+// ========================================
 // INICIALIZAÇÃO
 // ========================================
 
 function setupRealtimeCalculation() {
-    const inputs = document.querySelectorAll('input[type="number"], input[type="checkbox"], input[type="text"], select');
+    const inputs = document.querySelectorAll('input[type="number"], input[type="checkbox"], input[type="text"], select, textarea');
     inputs.forEach(input => {
         const eventName = input.type === 'checkbox' ? 'change' : 'input';
         input.addEventListener(eventName, recalculateSummary);
+        
+        // Adicionar handler para Enter em campos de input, select e textarea
+        // Usar capture phase para garantir que seja executado antes de outros handlers
+        if (input.type !== 'checkbox' && input.type !== 'submit' && input.type !== 'button') {
+            input.addEventListener('keydown', handleEnterKey, true);
+        }
     });
     
     updateIncomeRemoveButtons();
@@ -879,9 +989,40 @@ function showFinalResult() {
     }, 1000);
 }
 
+// Variável global para controlar se o submit é permitido
+window.allowFormSubmit = false;
+
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
     setupRealtimeCalculation();
+    
+    // Interceptar submit do formulário - só permitir se for explicitamente do botão de submit
+    const form = document.getElementById('taxForm');
+    if (form) {
+        // Marcar quando o botão de submit é clicado
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.addEventListener('click', (e) => {
+                window.allowFormSubmit = true;
+            });
+        }
+        
+        // Prevenir submit se não foi explicitamente permitido
+        form.addEventListener('submit', (event) => {
+            if (!window.allowFormSubmit) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                return false;
+            }
+            // Resetar flag após permitir submit
+            window.allowFormSubmit = false;
+        }, true); // Usar capture phase para interceptar antes
+        
+        // Garantir que a flag está false no início
+        window.allowFormSubmit = false;
+    }
+    
     if (window.hasSubmission) {
         showFinalResult();
     }

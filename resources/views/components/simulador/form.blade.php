@@ -29,7 +29,7 @@
                      ($state['jcpTotal'] ?? 0)) > 600000;
 @endphp
 
-<form method="POST" action="{{ route('simulador.store') }}" class="flex flex-col gap-6" id="taxForm">
+<form method="POST" action="{{ route('simulador.store') }}" class="flex flex-col gap-6" id="taxForm" onsubmit="return window.allowFormSubmit || false;">
     @csrf
     
     {{-- Barra de Progresso --}}
