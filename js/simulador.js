@@ -323,7 +323,10 @@ function addRentalProperty() {
                 </div>
             </div>
             <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">IPTU/mês</label>
+                <label class="block text-xs font-medium text-neutral-700 mb-1">
+                    IPTU
+                    <span class="block text-neutral-500 font-normal text-xs">(mensal)</span>
+                </label>
                 <div class="relative">
                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                     <input type="number" step="0.01" name="rentalProperties[${newIndex}][iptu]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
@@ -429,8 +432,8 @@ function collectStateFromForm() {
         const el = document.getElementById(id);
         return el ? el.checked : false;
     };
-    const birthYearInput = document.getElementById('birthYear');
-    const birthYear = birthYearInput && birthYearInput.value !== '' ? parseInt(birthYearInput.value, 10) : null;
+    const birthDateInput = document.getElementById('birthDate');
+    const birthDate = birthDateInput && birthDateInput.value !== '' ? birthDateInput.value : null;
 
     const incomeSources = collectIncomeSources();
     const rentalProperties = collectRentalProperties();
@@ -458,7 +461,7 @@ function collectStateFromForm() {
     });
 
     return {
-        birthYear: Number.isFinite(birthYear) ? birthYear : null,
+        birthDate: birthDate,
         seriousIllness: checkboxValue('seriousIllness'),
         incomeSources: incomeSources,
         rentalProperties: rentalProperties,
@@ -505,7 +508,19 @@ function computeIrpfMetrics(state) {
     let totalGrossMonthly = state.incomeMonthly || 0;
     
     let grossTaxable = (totalGrossMonthly * 12) + (state.totalRentalNet * 12);
-    const age = state.birthYear ? (window.CURRENT_YEAR - state.birthYear) : 0;
+    
+    // Calcular idade a partir da data de nascimento completa
+    let age = 0;
+    if (state.birthDate) {
+        const birthDate = new Date(state.birthDate);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        // Ajustar se ainda não completou aniversário este ano
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+    }
 
     // Isenção 65+
     if (age >= 65) {

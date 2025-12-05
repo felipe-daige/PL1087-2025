@@ -18,7 +18,8 @@ class RentalProperty
         public readonly float $grossMonthly,
         public readonly float $adminFee,      // Taxa de administração (dedutível PF)
         public readonly float $iptuMonthly,   // IPTU rateado (dedutível se pago pelo dono)
-        public readonly float $condoFee = 0   // Condomínio (dedutível se pago pelo dono)
+        public readonly float $condoFee = 0,   // Condomínio (dedutível se pago pelo dono)
+        public readonly string $periodicity = 'monthly'  // 'monthly' ou 'annual'
     ) {}
 
     /**
@@ -26,13 +27,74 @@ class RentalProperty
      */
     public static function fromArray(array $data): self
     {
+        $periodicity = $data['periodicity'] ?? 'monthly';
+        if (!in_array($periodicity, ['monthly', 'annual'])) {
+            $periodicity = 'monthly';
+        }
+        
         return new self(
             name: $data['name'] ?? '',
             grossMonthly: self::parseFloat($data['gross'] ?? 0),
             adminFee: self::parseFloat($data['admin_fee'] ?? 0),
             iptuMonthly: self::parseFloat($data['iptu'] ?? 0),
-            condoFee: self::parseFloat($data['condo'] ?? 0)
+            condoFee: self::parseFloat($data['condo'] ?? 0),
+            periodicity: $periodicity
         );
+    }
+
+    /**
+     * Retorna o valor bruto mensal (convertendo se necessário)
+     */
+    public function getGrossMonthly(): float
+    {
+        if ($this->periodicity === 'annual') {
+            return $this->grossMonthly / 12;
+        }
+        return $this->grossMonthly;
+    }
+
+    /**
+     * Retorna o valor bruto anual (convertendo se necessário)
+     */
+    public function getGrossAnnual(): float
+    {
+        if ($this->periodicity === 'annual') {
+            return $this->grossMonthly;
+        }
+        return $this->grossMonthly * 12;
+    }
+
+    /**
+     * Retorna a taxa de administração mensal (convertendo se necessário)
+     */
+    public function getAdminFeeMonthly(): float
+    {
+        if ($this->periodicity === 'annual') {
+            return $this->adminFee / 12;
+        }
+        return $this->adminFee;
+    }
+
+    /**
+     * Retorna o IPTU mensal (convertendo se necessário)
+     */
+    public function getIptuMonthly(): float
+    {
+        if ($this->periodicity === 'annual') {
+            return $this->iptuMonthly / 12;
+        }
+        return $this->iptuMonthly;
+    }
+
+    /**
+     * Retorna o condomínio mensal (convertendo se necessário)
+     */
+    public function getCondoMonthly(): float
+    {
+        if ($this->periodicity === 'annual') {
+            return $this->condoFee / 12;
+        }
+        return $this->condoFee;
     }
 
     /**
@@ -41,15 +103,12 @@ class RentalProperty
      */
     public function getNetMonthlyPF(): float
     {
-        return max(0, $this->grossMonthly - $this->adminFee - $this->iptuMonthly - $this->condoFee);
-    }
-
-    /**
-     * Calcula a receita bruta anual (para cálculo PJ)
-     */
-    public function getGrossAnnual(): float
-    {
-        return $this->grossMonthly * 12;
+        $gross = $this->getGrossMonthly();
+        $adminFee = $this->getAdminFeeMonthly();
+        $iptu = $this->getIptuMonthly();
+        $condo = $this->getCondoMonthly();
+        
+        return max(0, $gross - $adminFee - $iptu - $condo);
     }
 
     /**
@@ -57,6 +116,17 @@ class RentalProperty
      */
     public function getNetAnnualPF(): float
     {
+        if ($this->periodicity === 'annual') {
+            // Se os valores são anuais, calcular direto
+            $gross = $this->grossMonthly;
+            $adminFee = $this->adminFee;
+            $iptu = $this->iptuMonthly;
+            $condo = $this->condoFee;
+            
+            return max(0, $gross - $adminFee - $iptu - $condo);
+        }
+        
+        // Se mensal, multiplicar por 12
         return $this->getNetMonthlyPF() * 12;
     }
 
@@ -65,7 +135,7 @@ class RentalProperty
      */
     public function getDeductibleExpenses(): float
     {
-        return $this->adminFee + $this->iptuMonthly + $this->condoFee;
+        return $this->getAdminFeeMonthly() + $this->getIptuMonthly() + $this->getCondoMonthly();
     }
 
     /**
@@ -96,6 +166,7 @@ class RentalProperty
             'admin_fee' => $this->adminFee,
             'iptu' => $this->iptuMonthly,
             'condo' => $this->condoFee,
+            'periodicity' => $this->periodicity,
         ];
     }
 }

@@ -279,6 +279,7 @@ function collectRentalProperties() {
     rows.forEach((row) => {
         const index = row.getAttribute('data-index');
         const nameInput = row.querySelector(`input[name="rentalProperties[${index}][name]"]`);
+        const periodicitySelect = row.querySelector(`select[name="rentalProperties[${index}][periodicity]"]`);
         const grossInput = row.querySelector(`input[name="rentalProperties[${index}][gross]"]`);
         const adminFeeInput = row.querySelector(`input[name="rentalProperties[${index}][admin_fee]"]`);
         const iptuInput = row.querySelector(`input[name="rentalProperties[${index}][iptu]"]`);
@@ -286,6 +287,7 @@ function collectRentalProperties() {
         
         properties.push({
             name: nameInput ? nameInput.value : '',
+            periodicity: periodicitySelect ? periodicitySelect.value : 'monthly',
             gross: grossInput ? parseInputNumber(grossInput.value) : 0,
             admin_fee: adminFeeInput ? parseInputNumber(adminFeeInput.value) : 0,
             iptu: iptuInput ? parseInputNumber(iptuInput.value) : 0,
@@ -308,27 +310,37 @@ function addRentalProperty() {
     newRow.setAttribute('data-index', newIndex);
     
     newRow.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+        <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
             <div class="md:col-span-2">
                 <label class="block text-xs font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
                 <input type="text" name="rentalProperties[${newIndex}][name]" placeholder="Ex: Apt Centro" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
             </div>
             <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Aluguel Bruto</label>
+                <label class="block text-xs font-medium text-neutral-700 mb-1">Periodicidade</label>
+                <select name="rentalProperties[${newIndex}][periodicity]" class="form-select rental-periodicity-select w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" onchange="updateRentalLabels(${newIndex})">
+                    <option value="monthly">Mensais</option>
+                    <option value="annual">Anuais</option>
+                </select>
+            </div>
+            <div class="md:col-span-1">
+                <label class="block text-xs font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
                 <div class="relative">
                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                     <input type="number" step="0.01" name="rentalProperties[${newIndex}][gross]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
             <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">Taxa Adm.</label>
+                <label class="block text-xs font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
                 <div class="relative">
                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                     <input type="number" step="0.01" name="rentalProperties[${newIndex}][admin_fee]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
             <div class="md:col-span-1">
-                <label class="block text-xs font-medium text-neutral-700 mb-1">IPTU/mês</label>
+                <label class="block text-xs font-medium text-neutral-700 mb-1">
+                    IPTU
+                    <span class="rental-label-iptu block text-neutral-500 font-normal text-xs"></span>
+                </label>
                 <div class="relative">
                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                     <input type="number" step="0.01" name="rentalProperties[${newIndex}][iptu]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
@@ -336,7 +348,7 @@ function addRentalProperty() {
             </div>
             <div class="md:col-span-1 flex gap-2">
                 <div class="flex-1">
-                    <label class="block text-xs font-medium text-neutral-700 mb-1">Condomínio</label>
+                    <label class="block text-xs font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
                     <div class="relative">
                         <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                         <input type="number" step="0.01" name="rentalProperties[${newIndex}][condo]" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
@@ -354,10 +366,14 @@ function addRentalProperty() {
     container.appendChild(newRow);
     updateRentalRemoveButtons();
     
+    // Inicializar labels do novo imóvel
+    updateRentalLabels(newIndex);
+    
     // Adicionar event listeners
-    const inputs = newRow.querySelectorAll('input');
+    const inputs = newRow.querySelectorAll('input, select');
     inputs.forEach(input => {
         input.addEventListener('input', recalculateSummary);
+        input.addEventListener('change', recalculateSummary);
         
         // Adicionar handler para Enter
         if (input.type !== 'checkbox' && input.type !== 'submit' && input.type !== 'button') {
@@ -393,6 +409,7 @@ function reindexRentalProperties() {
         row.setAttribute('data-index', newIndex);
         
         const nameInput = row.querySelector('input[name*="[name]"]');
+        const periodicitySelect = row.querySelector('select[name*="[periodicity]"]');
         const grossInput = row.querySelector('input[name*="[gross]"]');
         const adminFeeInput = row.querySelector('input[name*="[admin_fee]"]');
         const iptuInput = row.querySelector('input[name*="[iptu]"]');
@@ -400,6 +417,10 @@ function reindexRentalProperties() {
         const removeBtn = row.querySelector('.remove-rental-btn');
         
         if (nameInput) nameInput.name = `rentalProperties[${newIndex}][name]`;
+        if (periodicitySelect) {
+            periodicitySelect.name = `rentalProperties[${newIndex}][periodicity]`;
+            periodicitySelect.setAttribute('onchange', `updateRentalLabels(${newIndex})`);
+        }
         if (grossInput) grossInput.name = `rentalProperties[${newIndex}][gross]`;
         if (adminFeeInput) adminFeeInput.name = `rentalProperties[${newIndex}][admin_fee]`;
         if (iptuInput) iptuInput.name = `rentalProperties[${newIndex}][iptu]`;
@@ -408,6 +429,38 @@ function reindexRentalProperties() {
             removeBtn.setAttribute('onclick', `removeRentalProperty(${newIndex})`);
         }
     });
+}
+
+function updateRentalLabels(index) {
+    const row = document.querySelector(`.rental-property-row[data-index="${index}"]`);
+    if (!row) return;
+    
+    const periodicitySelect = row.querySelector(`select[name="rentalProperties[${index}][periodicity]"]`);
+    if (!periodicitySelect) return;
+    
+    const periodicity = periodicitySelect.value;
+    const isAnnual = periodicity === 'annual';
+    
+    // Atualizar labels
+    const labelGross = row.querySelector('.rental-label-gross');
+    const labelAdmin = row.querySelector('.rental-label-admin');
+    const labelIptu = row.querySelector('.rental-label-iptu');
+    const labelCondo = row.querySelector('.rental-label-condo');
+    
+    if (labelGross) {
+        labelGross.textContent = isAnnual ? '(total anual)' : '(mensal)';
+    }
+    if (labelAdmin) {
+        labelAdmin.textContent = isAnnual ? '(total anual)' : '(mensal)';
+    }
+    if (labelIptu) {
+        labelIptu.textContent = isAnnual ? '(total anual)' : '(mensal)';
+    }
+    if (labelCondo) {
+        labelCondo.textContent = isAnnual ? '(total anual)' : '(mensal)';
+    }
+    
+    recalculateSummary();
 }
 
 function updateRentalRemoveButtons() {
@@ -439,8 +492,8 @@ function collectStateFromForm() {
         const el = document.getElementById(id);
         return el ? el.checked : false;
     };
-    const birthYearInput = document.getElementById('birthYear');
-    const birthYear = birthYearInput && birthYearInput.value !== '' ? parseInt(birthYearInput.value, 10) : null;
+    const birthDateInput = document.getElementById('birthDate');
+    const birthDate = birthDateInput && birthDateInput.value !== '' ? birthDateInput.value : null;
 
     const incomeSources = collectIncomeSources();
     const rentalProperties = collectRentalProperties();
@@ -456,19 +509,27 @@ function collectStateFromForm() {
         totalIrrf += source.irrf || 0;
     });
 
-    // Calcular totais de aluguéis
+    // Calcular totais de aluguéis (considerando periodicidade)
     let totalRentalGross = 0;
     let totalRentalNet = 0;
     
     rentalProperties.forEach(property => {
-        const gross = property.gross || 0;
-        const deductions = (property.admin_fee || 0) + (property.iptu || 0) + (property.condo || 0);
-        totalRentalGross += gross;
-        totalRentalNet += Math.max(0, gross - deductions);
+        const periodicity = property.periodicity || 'monthly';
+        const isAnnual = periodicity === 'annual';
+        
+        // Converter para mensal se necessário
+        const grossMonthly = isAnnual ? (property.gross || 0) / 12 : (property.gross || 0);
+        const adminFeeMonthly = isAnnual ? (property.admin_fee || 0) / 12 : (property.admin_fee || 0);
+        const iptuMonthly = isAnnual ? (property.iptu || 0) / 12 : (property.iptu || 0);
+        const condoMonthly = isAnnual ? (property.condo || 0) / 12 : (property.condo || 0);
+        
+        const deductions = adminFeeMonthly + iptuMonthly + condoMonthly;
+        totalRentalGross += grossMonthly;
+        totalRentalNet += Math.max(0, grossMonthly - deductions);
     });
 
     return {
-        birthYear: Number.isFinite(birthYear) ? birthYear : null,
+        birthDate: birthDate,
         seriousIllness: checkboxValue('seriousIllness'),
         incomeSources: incomeSources,
         rentalProperties: rentalProperties,
@@ -515,7 +576,19 @@ function computeIrpfMetrics(state) {
     let totalGrossMonthly = state.incomeMonthly || 0;
     
     let grossTaxable = (totalGrossMonthly * 12) + (state.totalRentalNet * 12);
-    const age = state.birthYear ? (window.CURRENT_YEAR - state.birthYear) : 0;
+    
+    // Calcular idade a partir da data de nascimento completa
+    let age = 0;
+    if (state.birthDate) {
+        const birthDate = new Date(state.birthDate);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        // Ajustar se ainda não completou aniversário este ano
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+    }
 
     // Isenção 65+
     if (age >= 65) {
@@ -976,6 +1049,15 @@ function setupRealtimeCalculation() {
     updateIncomeRemoveButtons();
     updateRentalRemoveButtons();
     
+    // Inicializar labels de periodicidade para todos os imóveis existentes
+    const rentalRows = document.querySelectorAll('.rental-property-row');
+    rentalRows.forEach(row => {
+        const index = row.getAttribute('data-index');
+        if (index !== null) {
+            updateRentalLabels(parseInt(index, 10));
+        }
+    });
+    
     recalculateSummary();
 }
 
@@ -1042,3 +1124,4 @@ window.addIncomeSource = addIncomeSource;
 window.removeIncomeSource = removeIncomeSource;
 window.addRentalProperty = addRentalProperty;
 window.removeRentalProperty = removeRentalProperty;
+window.updateRentalLabels = updateRentalLabels;

@@ -48,11 +48,12 @@
         </div>
         <div class="space-y-6">
             <div>
-                <label class="block text-sm font-medium text-neutral-700 mb-2" for="birthYear">Ano de Nascimento</label>
-                <input type="number" id="birthYear" name="birthYear" placeholder="Ex: 1980" 
-                       value="{{ e($irpfFieldValue('birthYear', $state['birthYear'] ?? '')) }}" 
+                <label class="block text-sm font-medium text-neutral-700 mb-2" for="birthDate">Data de Nascimento</label>
+                <input type="date" id="birthDate" name="birthDate" 
+                       value="{{ e($irpfFieldValue('birthDate', $state['birthDate'] ?? ($state['birthYear'] ?? '' ? $state['birthYear'] . '-01-01' : ''))) }}" 
+                       max="{{ date('Y-m-d') }}"
                        class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow outline-none">
-                <p class="text-xs text-neutral-400 mt-1">Usado para isenção extra de 65+ anos (R$ 24.000/ano).</p>
+                <p class="text-xs text-neutral-400 mt-1">Usado para isenção extra de 65+ anos (R$ 24.000/ano). O cálculo considera a data completa para maior precisão.</p>
             </div>
             <div class="flex items-start p-4 bg-neutral-50 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors">
                 <div class="flex items-center h-5">
@@ -118,14 +119,14 @@
                                 </div>
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">INSS Retido</label>
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">INSS Retido ou Pago (GPS) <span class="text-neutral-500 font-normal">(mensal)</span></label>
                                 <div class="relative">
                                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                                     <input type="number" step="0.01" name="incomeSources[{{ $index }}][inss]" value="{{ e($source['inss'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                                 </div>
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">IRRF Retido</label>
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">IRRF Retido <span class="text-neutral-500 font-normal">(mensal)</span></label>
                                 <div class="relative">
                                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                                     <input type="number" step="0.01" name="incomeSources[{{ $index }}][irrf]" value="{{ e($source['irrf'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
@@ -149,6 +150,20 @@
                     </svg>
                     Adicionar Fonte
                 </button>
+            </div>
+
+            {{-- Despesas de Livro Caixa --}}
+            <div class="p-4 border border-neutral-200 rounded-lg bg-blue-50/50">
+                <label class="block text-sm font-medium text-neutral-700 mb-1" for="bookExpenses">
+                    Despesas de Livro Caixa <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
+                </label>
+                <div class="relative max-w-xs">
+                    <span class="absolute left-3 top-3 text-neutral-400">R$</span>
+                    <input type="number" step="0.01" id="bookExpenses" name="bookExpenses" 
+                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                           placeholder="0,00" value="{{ e($irpfFieldValue('bookExpenses', $state['bookExpenses'] ?? '')) }}">
+                </div>
+                <p class="text-xs text-neutral-400 mt-1">Despesas operacionais dedutíveis da receita bruta (essencial para médicos/advogados/autônomos).</p>
             </div>
 
             {{-- 13º Salário --}}
@@ -193,27 +208,37 @@
                 <div id="rentalPropertiesContainer" class="space-y-4">
                     @foreach($rentalProperties as $index => $property)
                     <div class="rental-property-row bg-neutral-50 p-4 rounded-lg border border-neutral-200" data-index="{{ $index }}">
-                        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                        <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-medium text-neutral-700 mb-1">Identificação do Imóvel</label>
                                 <input type="text" name="rentalProperties[{{ $index }}][name]" value="{{ e($property['name'] ?? '') }}" placeholder="Ex: Apt Centro" class="w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                             </div>
                             <div class="md:col-span-1">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Aluguel Bruto</label>
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">Periodicidade</label>
+                                <select name="rentalProperties[{{ $index }}][periodicity]" class="form-select rental-periodicity-select w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" onchange="updateRentalLabels({{ $index }})">
+                                    <option value="monthly" {{ ($property['periodicity'] ?? 'monthly') === 'monthly' ? 'selected' : '' }}>Mensais</option>
+                                    <option value="annual" {{ ($property['periodicity'] ?? '') === 'annual' ? 'selected' : '' }}>Anuais</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-1">
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
                                 <div class="relative">
                                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                                     <input type="number" step="0.01" name="rentalProperties[{{ $index }}][gross]" value="{{ e($property['gross'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                                 </div>
                             </div>
                             <div class="md:col-span-1">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">Taxa Adm.</label>
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
                                 <div class="relative">
                                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                                     <input type="number" step="0.01" name="rentalProperties[{{ $index }}][admin_fee]" value="{{ e($property['admin_fee'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                                 </div>
                             </div>
                             <div class="md:col-span-1">
-                                <label class="block text-xs font-medium text-neutral-700 mb-1">IPTU/mês</label>
+                                <label class="block text-xs font-medium text-neutral-700 mb-1">
+                                    IPTU
+                                    <span class="rental-label-iptu block text-neutral-500 font-normal text-xs"></span>
+                                </label>
                                 <div class="relative">
                                     <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                                     <input type="number" step="0.01" name="rentalProperties[{{ $index }}][iptu]" value="{{ e($property['iptu'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
@@ -221,7 +246,7 @@
                             </div>
                             <div class="md:col-span-1 flex gap-2">
                                 <div class="flex-1">
-                                    <label class="block text-xs font-medium text-neutral-700 mb-1">Condomínio</label>
+                                    <label class="block text-xs font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
                                     <div class="relative">
                                         <span class="absolute left-2 top-2 text-neutral-400 text-xs">R$</span>
                                         <input type="number" step="0.01" name="rentalProperties[{{ $index }}][condo]" value="{{ e($property['condo'] ?? '') }}" placeholder="0,00" class="pl-8 w-full p-2 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
@@ -290,7 +315,7 @@
             {{-- Saúde --}}
             <div>
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="deductionHealth">
-                    Gastos com Saúde
+                    Gastos com Saúde <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                     <span class="text-green-600 text-xs font-normal">(sem limite)</span>
                 </label>
                 <div class="relative">
@@ -304,23 +329,26 @@
             {{-- Educação --}}
             <div>
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="deductionEducation">
-                    Gastos com Educação
-                    <span class="text-amber-600 text-xs font-normal">(limite R$ 3.561,50/pessoa)</span>
+                    Gastos com Educação <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                 </label>
+                <span class="text-amber-600 text-xs font-normal block mb-1">(limite R$ 3.561,50/pessoa)</span>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
                     <input type="number" step="0.01" id="deductionEducation" name="deductionEducation" 
                            class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('deductionEducation', $state['deductionEducation'] ?? '')) }}">
                 </div>
+                <p class="text-xs text-amber-600 mt-1 font-medium">
+                    ⚠️ Atenção: Some os gastos respeitando o limite individual de R$ 3.561,50 por pessoa. Não some o excedente de um dependente para cobrir outro. Exemplo: 3 filhos = limite total de 4 × R$ 3.561,50, mas cada pessoa tem seu próprio teto individual.
+                </p>
                 <p id="educationWarning" class="text-xs text-orange-600 mt-1 {{ ($educationWarning ?? false) ? '' : 'hidden' }}">Limite aplicado: R$ {{ number_format($constants['educationCap'] ?? 3561.50, 2, ',', '.') }}.</p>
             </div>
 
             {{-- PGBL --}}
             <div class="col-span-1 md:col-span-2">
                 <label class="block text-sm font-medium text-neutral-700 mb-1" for="deductionPGBL">
-                    Previdência Privada (PGBL)
-                    <span class="text-amber-600 text-xs font-normal">(limite 12% da renda tributável)</span>
+                    Previdência Privada (PGBL) <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
+                    <span class="text-amber-600 text-xs font-normal">(limite 12% da renda tributável anual)</span>
                 </label>
                 <div class="relative max-w-md">
                     <span class="absolute left-3 top-3 text-neutral-400">R$</span>
@@ -328,6 +356,21 @@
                            class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
                            placeholder="0,00" value="{{ e($irpfFieldValue('deductionPGBL', $state['deductionPGBL'] ?? '')) }}">
                 </div>
+            </div>
+
+            {{-- Pensão Alimentícia Judicial --}}
+            <div class="col-span-1 md:col-span-2">
+                <label class="block text-sm font-medium text-neutral-700 mb-1" for="alimonyPaid">
+                    Pensão Alimentícia Judicial <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
+                    <span class="text-green-600 text-xs font-normal">(dedução legal integral)</span>
+                </label>
+                <div class="relative max-w-md">
+                    <span class="absolute left-3 top-3 text-neutral-400">R$</span>
+                    <input type="number" step="0.01" id="alimonyPaid" name="alimonyPaid" 
+                           class="pl-10 w-full p-3 border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none" 
+                           placeholder="0,00" value="{{ e($irpfFieldValue('alimonyPaid', $state['alimonyPaid'] ?? '')) }}">
+                </div>
+                <p class="text-xs text-neutral-400 mt-1">Dedução legal que afeta ambos os regimes (Simplificado e Completo).</p>
             </div>
         </div>
         <div class="mt-8 flex justify-between">
@@ -369,7 +412,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="dividendsExcess">
-                            Valor Tributado (> R$ 50k/mês)
+                            Valor Tributado (> R$ 50k/mês) <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                             <span class="text-red-500 text-xs">10% na fonte</span>
                         </label>
                         <div class="relative">
@@ -394,7 +437,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="jcpTotal">
-                            JCP Recebido
+                            JCP Recebido <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                             <span class="text-neutral-400 text-xs">(15% retido)</span>
                         </label>
                         <div class="relative">
@@ -405,7 +448,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="financialInvestments">Aplicações Financeiras</label>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="financialInvestments">Aplicações Financeiras <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
                             <input type="number" step="0.01" id="financialInvestments" name="financialInvestments" 
@@ -415,7 +458,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="taxExemptInvestments">
-                            LCI/LCA/CRI/CRA
+                            LCI/LCA/CRI/CRA <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                             <span class="text-green-600 text-xs">(isentos)</span>
                         </label>
                         <div class="relative">
@@ -429,7 +472,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label class="block text-sm font-medium text-neutral-700 mb-1" for="fiiDividends">
-                            Dividendos de FIIs
+                            Dividendos de FIIs <span class="text-neutral-500 text-xs font-normal">(total anual)</span>
                             <span class="text-green-600 text-xs">(isentos PF)</span>
                         </label>
                         <div class="relative">
@@ -440,7 +483,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="otherExempt">Outros Isentos</label>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="otherExempt">Outros Isentos <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
                             <input type="number" step="0.01" id="otherExempt" name="otherExempt" 
@@ -463,7 +506,7 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="accountingProfit">Lucro Contábil da Empresa</label>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="accountingProfit">Lucro Contábil da Empresa <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
                             <input type="number" step="0.01" id="accountingProfit" name="accountingProfit" 
@@ -472,7 +515,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="distributedProfit">Lucro Distribuído a Você</label>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="distributedProfit">Lucro Distribuído a Você <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
                             <input type="number" step="0.01" id="distributedProfit" name="distributedProfit" 
@@ -481,7 +524,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="irpjPaid">IRPJ Pago pela Empresa</label>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="irpjPaid">IRPJ Pago pela Empresa <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
                             <input type="number" step="0.01" id="irpjPaid" name="irpjPaid" 
@@ -490,7 +533,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="csllPaid">CSLL Paga pela Empresa</label>
+                        <label class="block text-sm font-medium text-neutral-700 mb-1" for="csllPaid">CSLL Paga pela Empresa <span class="text-neutral-500 text-xs font-normal">(total anual)</span></label>
                         <div class="relative">
                             <span class="absolute left-3 top-3 text-neutral-400">R$</span>
                             <input type="number" step="0.01" id="csllPaid" name="csllPaid" 

@@ -203,7 +203,9 @@ class TaxCalculatorService
     ): array {
         // Estado legado para o formulário
         $state = [
-            'birthYear' => $input->birthYear,
+            'birthDate' => $input->birthDate,
+            // Retrocompatibilidade: manter birthYear para dados antigos
+            'birthYear' => $input->birthDate ? (int) substr($input->birthDate, 0, 4) : null,
             'seriousIllness' => $input->hasSeriousIllness,
             'incomeSources' => array_map(fn($s) => $s->toArray(), $input->incomeSources),
             'rentalProperties' => array_map(fn($p) => $p->toArray(), $input->rentalProperties),
@@ -223,6 +225,8 @@ class TaxCalculatorService
             'deductionHealth' => $input->deductionHealth,
             'deductionEducation' => $input->deductionEducation,
             'deductionPGBL' => $input->deductionPGBL,
+            'bookExpenses' => $input->bookExpenses,
+            'alimonyPaid' => $input->alimonyPaid,
             'highIncomeTrigger' => $input->triggersIRPFM(),
             // Dados corporativos
             'accountingProfit' => $input->corporateData?->accountingProfit ?? 0,

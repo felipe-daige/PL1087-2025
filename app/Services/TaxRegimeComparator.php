@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\DTOs\TaxInputData;
+use Carbon\Carbon;
 
 /**
  * PRODUTO 1: Comparativo Simplificada vs. Completa
@@ -104,6 +105,10 @@ class TaxRegimeComparator
         // Base após INSS
         $baseAfterInss = $grossTaxable - $inssDeductible;
 
+        // Subtrair pensão alimentícia judicial (dedução legal integral que afeta ambos os regimes)
+        // Deve ser deduzida antes de aplicar o desconto simplificado, conforme regra da Receita
+        $baseAfterInss = max(0, $baseAfterInss - $input->alimonyPaid);
+
         // ========================================
         // REGIME 1: DESCONTO SIMPLIFICADO
         // ========================================
@@ -195,6 +200,14 @@ class TaxRegimeComparator
         // Renda tributável anual (salários + aluguéis líquidos)
         $grossTaxable = $input->getTotalGrossAnnual() + $input->getTotalRentalNetMonthly() * 12;
 
+        // Subtrair despesas de livro caixa APENAS da renda autônoma
+        // O Livro Caixa só pode abater receita de autônomo, não salário CLT
+        // Exemplo: Se tiver R$ 100k de salário + R$ 5k de autônomo e R$ 20k de despesas,
+        // a base deve ser: 100k (salário) + 0 (autônomo zerado), não 85k (100k+5k-20k)
+        $autonomousIncome = $input->getTotalAutonomousAnnual();
+        $bookExpensesDeductible = min($input->bookExpenses, $autonomousIncome);
+        $grossTaxable = max(0, $grossTaxable - $bookExpensesDeductible);
+
         // Isenção para moléstia grave: zera rendimentos de aposentadoria
         // Art. 6º, XIV da Lei 7.713/88 (mantido pela Lei 15.270)
         if ($input->hasSeriousIllness) {
@@ -211,7 +224,9 @@ class TaxRegimeComparator
 
         // Isenção adicional para maiores de 65 anos
         // Art. 6º, XV da Lei 7.713/88 (mantido pela Lei 15.270)
-        if ($input->isEligibleForSeniorExemption($currentYear)) {
+        // Converter ano para Carbon para compatibilidade com nova assinatura
+        $currentDate = Carbon::create($currentYear, 1, 1);
+        if ($input->isEligibleForSeniorExemption($currentDate)) {
             $grossTaxable = max(0, $grossTaxable - self::SENIOR_EXEMPTION);
         }
 
