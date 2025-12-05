@@ -1,1 +1,2 @@
-/vendor
+# Não ignorar vendor - necessário para o Laravel funcionar na Vercel
+# node_modules é ignorado automaticamente pela Vercel
