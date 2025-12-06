@@ -9,11 +9,14 @@
     "routes": [
         {
             "src": "/build/(.*)",
-            "dest": "/public/build/$1"
+            "dest": "/public/build/$1",
+            "headers": {
+                "Cache-Control": "public, max-age=31536000, immutable"
+            }
         },
         {
             "src": "/js/(.*)",
-            "dest": "/js/$1",
+            "dest": "/public/js/$1",
             "headers": {
                 "Content-Type": "application/javascript"
             }
