@@ -17,11 +17,13 @@ function parseInputNumber(value) {
     if (value === null || value === undefined || value === '') {
         return 0;
     }
+    // Se já é um número, retornar diretamente
     if (typeof value === 'number') {
         return Number.isFinite(value) ? value : 0;
     }
-    // Usar removeCurrencyMask para lidar com valores formatados
-    return removeCurrencyMask(value);
+    // Converter string para número (sem máscara, campos são type="number" agora)
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function formatCurrency(value) {
@@ -356,21 +358,21 @@ function addIncomeSource() {
                 <label class="block text-sm font-medium text-neutral-700 mb-1">Bruto Anual</label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
-                    <input type="text" name="incomeSources[${newIndex}][gross]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                    <input type="number" step="0.01" name="incomeSources[${newIndex}][gross]" placeholder="0.00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-neutral-700 mb-1">INSS Retido ou Pago (GPS) <span class="text-neutral-500 font-normal">(anual)</span></label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
-                    <input type="text" name="incomeSources[${newIndex}][inss]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                    <input type="number" step="0.01" name="incomeSources[${newIndex}][inss]" placeholder="0.00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-neutral-700 mb-1">IRRF Retido <span class="text-neutral-500 font-normal">(anual)</span></label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
-                    <input type="text" name="incomeSources[${newIndex}][irrf]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
+                    <input type="number" step="0.01" name="incomeSources[${newIndex}][irrf]" placeholder="0.00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none income-source-input">
                 </div>
             </div>
         </div>
@@ -390,10 +392,7 @@ function addIncomeSource() {
             input.addEventListener('keydown', handleEnterKey);
         }
         
-        // Aplicar máscara de moeda em campos monetários
-        if (input.classList.contains('currency-input')) {
-            setupCurrencyMask(input);
-        }
+        // Máscaras removidas - campos numéricos sem formatação
     });
     
     recalculateSummary();
@@ -534,14 +533,14 @@ function addRentalProperty() {
                 <label class="block text-sm font-medium text-neutral-700 mb-1">Aluguel Bruto <span class="rental-label-gross text-neutral-500 font-normal"></span></label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
-                    <input type="text" name="rentalProperties[${newIndex}][gross]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][gross]" placeholder="0.00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-neutral-700 mb-1">Taxa Adm. <span class="rental-label-admin text-neutral-500 font-normal"></span></label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
-                    <input type="text" name="rentalProperties[${newIndex}][admin_fee]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][admin_fee]" placeholder="0.00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
             <div>
@@ -551,14 +550,14 @@ function addRentalProperty() {
                 </label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
-                    <input type="text" name="rentalProperties[${newIndex}][iptu]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][iptu]" placeholder="0.00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-neutral-700 mb-1">Condomínio <span class="rental-label-condo text-neutral-500 font-normal"></span></label>
                 <div class="relative">
                     <span class="absolute left-3 top-3 text-neutral-400 text-sm">R$</span>
-                    <input type="text" name="rentalProperties[${newIndex}][condo]" placeholder="0,00" class="currency-input pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
+                    <input type="number" step="0.01" name="rentalProperties[${newIndex}][condo]" placeholder="0.00" class="pl-10 w-full p-3 text-sm border border-neutral-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 outline-none">
                 </div>
             </div>
         </div>
@@ -581,10 +580,7 @@ function addRentalProperty() {
             input.addEventListener('keydown', handleEnterKey);
         }
         
-        // Aplicar máscara de moeda em campos monetários
-        if (input.classList.contains('currency-input')) {
-            setupCurrencyMask(input);
-        }
+        // Máscaras removidas - campos numéricos sem formatação
     });
     
     recalculateSummary();
@@ -1412,50 +1408,15 @@ function setupRealtimeCalculation() {
             input.addEventListener('keydown', handleEnterKey, true);
         }
         
-        // Aplicar máscara de moeda em campos monetários
-        if (input.classList.contains('currency-input')) {
-            setupCurrencyMask(input);
-            // Formatar valor inicial se houver (sem forçar decimais)
-            if (input.value) {
-                const numericValue = removeCurrencyMask(input.value);
-                if (numericValue > 0) {
-                    // Verificar se o valor original tinha decimais
-                    const hasDecimals = input.value.includes(',') || (input.value.includes('.') && input.value.split('.').length > 2);
-                    if (hasDecimals) {
-                        const formatted = numericValue.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                        });
-                        input.value = formatted;
-                    } else {
-                        const formatted = numericValue.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0,
-                        });
-                        input.value = formatted;
-                    }
-                }
-            }
-        }
+        // Máscaras removidas - campos numéricos sem formatação
     });
     
     // Adicionar listener específico para cálculo automático de dividendos
-    // Garantir que a máscara seja aplicada primeiro, depois o cálculo
     const dividendsTotalInput = document.getElementById('dividendsTotal');
     if (dividendsTotalInput) {
-        // Garantir que a máscara está configurada
-        if (!dividendsTotalInput.classList.contains('currency-input')) {
-            dividendsTotalInput.classList.add('currency-input');
-        }
-        setupCurrencyMask(dividendsTotalInput);
-        
-        // Adicionar listener para cálculo (usar setTimeout para garantir que a máscara seja aplicada primeiro)
         dividendsTotalInput.addEventListener('input', function(e) {
-            // Usar setTimeout para garantir que a máscara seja aplicada antes do cálculo
-            setTimeout(() => {
-                updateDividendsExcess();
-                recalculateSummary();
-            }, 0);
+            updateDividendsExcess();
+            recalculateSummary();
         });
     }
     
