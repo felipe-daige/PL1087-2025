@@ -1,0 +1,39 @@
+{
+  "_auto-sRkgK8jz.js": {
+    "file": "assets/auto-sRkgK8jz.js",
+    "name": "auto"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-Bv_Yu-WJ.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-CAiCLEjY.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/resultado.js": {
+    "file": "assets/resultado-BP6Ejg09.js",
+    "name": "resultado",
+    "src": "resources/js/resultado.js",
+    "isEntry": true,
+    "imports": [
+      "_auto-sRkgK8jz.js"
+    ]
+  },
+  "resources/js/simulador.js": {
+    "file": "assets/simulador-CduUGrKw.js",
+    "name": "simulador",
+    "src": "resources/js/simulador.js",
+    "isEntry": true,
+    "imports": [
+      "_auto-sRkgK8jz.js"
+    ]
+  }
+}
