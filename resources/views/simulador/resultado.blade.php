@@ -733,7 +733,7 @@
         taxBreakdown: @json($chartTaxBreakdownData),
     };
 </script>
-<script src="/js/resultado.js"></script>
+@vite('resources/js/resultado.js')
 @endpush
 
 @endsection

@@ -4,6 +4,8 @@
 // Lei 15.270/2025 (IRPF 2026)
 // ========================================
 
+import { Chart } from 'chart.js/auto';
+
 // Utilitário para formatar moeda
 function formatCurrency(value) {
     const numeric = Number.isFinite(value) ? value : 0;

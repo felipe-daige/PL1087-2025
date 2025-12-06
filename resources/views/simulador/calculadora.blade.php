@@ -103,6 +103,6 @@
             window.holdingData = null;
             @endif
         </script>
-        <script src="/js/simulador.js"></script>
+        @vite('resources/js/simulador.js')
     @endpush
 @endsection

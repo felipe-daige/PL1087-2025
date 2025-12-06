@@ -396,6 +396,6 @@
     </div>
 
     @push('scripts')
-        <script src="/js/simulador.js"></script>
+        @vite('resources/js/simulador.js')
     @endpush
 @endsection

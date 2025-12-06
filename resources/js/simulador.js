@@ -3,6 +3,8 @@
 // Lei 15.270/2025 (IRPF 2026)
 // ========================================
 
+import { Chart } from 'chart.js/auto';
+
 let comparisonChart = null;
 let irpfmGauge = null;
 let holdingChart = null;
