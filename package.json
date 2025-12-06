@@ -6,7 +6,8 @@
         "node": "22.x"
     },
     "scripts": {
-        "build": "vite build",
+        "build": "vite build && npm run postbuild",
+        "postbuild": "cp public/build/.vite/manifest.json public/build/manifest.json 2>/dev/null || true",
         "dev": "vite",
         "vercel-build": "npm install && npm run build"
     },
