@@ -55,7 +55,6 @@
     "env": {
         "APP_ENV": "production",
         "APP_DEBUG": "false",
-        "APP_URL": "",
         "NODE_ENV": "production",
  
         "APP_CONFIG_CACHE": "/tmp/config.php",
