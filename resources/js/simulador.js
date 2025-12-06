@@ -92,12 +92,11 @@ function removeCurrencyMask(value) {
 function applyCurrencyMask(input) {
     if (!input) return;
     
-    // Obter valor atual e posição do cursor
+    // Obter valor atual
     let value = input.value;
-    const cursorPos = input.selectionStart || 0;
     
-    // Remover tudo exceto números, vírgula e ponto
-    let cleaned = value.replace(/[^\d,.]/g, '');
+    // Remover tudo exceto números e vírgula (não processar pontos como decimais)
+    let cleaned = value.replace(/[^\d,]/g, '');
     
     // Se não há nada, limpar
     if (!cleaned) {
@@ -105,40 +104,39 @@ function applyCurrencyMask(input) {
         return;
     }
     
-    // Tratar múltiplos separadores decimais - manter apenas o último
-    const parts = cleaned.split(/[,.]/);
-    if (parts.length > 2) {
-        cleaned = parts.slice(0, -1).join('') + ',' + parts[parts.length - 1];
+    // Verificar se há vírgula (separador decimal)
+    const hasComma = cleaned.includes(',');
+    
+    let integerPart = '';
+    let decimalPart = '';
+    
+    if (hasComma) {
+        // Se há vírgula, dividir em parte inteira e decimal
+        const commaIndex = cleaned.indexOf(',');
+        integerPart = cleaned.substring(0, commaIndex).replace(/\D/g, '');
+        // Pegar apenas os 2 primeiros dígitos após a vírgula
+        decimalPart = cleaned.substring(commaIndex + 1).replace(/\D/g, '').substring(0, 2);
+    } else {
+        // Se não há vírgula, tratar tudo como parte inteira
+        integerPart = cleaned.replace(/\D/g, '');
+        decimalPart = '';
     }
     
-    // Converter ponto para vírgula (padrão brasileiro)
-    cleaned = cleaned.replace(/\./g, ',');
-    
-    // Se houver múltiplas vírgulas, manter apenas a última como decimal
-    const lastCommaIndex = cleaned.lastIndexOf(',');
-    if (lastCommaIndex !== -1) {
-        const beforeComma = cleaned.substring(0, lastCommaIndex).replace(/,/g, '');
-        const afterComma = cleaned.substring(lastCommaIndex + 1).replace(/\D/g, '').substring(0, 2);
-        cleaned = beforeComma + ',' + afterComma;
+    // Se não há parte inteira, usar '0'
+    if (!integerPart) {
+        integerPart = '0';
     }
-    
-    // Separar parte inteira e decimal
-    const finalParts = cleaned.split(',');
-    let integerPart = finalParts[0].replace(/\D/g, '');
-    const decimalPart = finalParts[1] || '';
-    
-    // Limitar parte decimal a 2 dígitos
-    const limitedDecimal = decimalPart.substring(0, 2);
     
     // Adicionar separadores de milhar na parte inteira
-    if (integerPart) {
-        integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     
     // Montar valor formatado
-    let formattedValue = integerPart;
-    if (limitedDecimal) {
-        formattedValue += ',' + limitedDecimal;
+    let formattedValue = formattedInteger;
+    if (decimalPart) {
+        formattedValue += ',' + decimalPart;
+    } else if (hasComma) {
+        // Se o usuário digitou vírgula mas não completou os decimais
+        formattedValue += ',';
     }
     
     // Atualizar o valor do input
@@ -157,17 +155,47 @@ function setupCurrencyMask(input) {
         applyCurrencyMask(e.target);
     });
     
-    // Aplicar máscara ao perder o foco (garantir formatação completa com 2 decimais)
+    // Aplicar máscara ao perder o foco (garantir formatação completa)
     input.addEventListener('blur', function(e) {
-        const numericValue = removeCurrencyMask(e.target.value);
+        const currentValue = e.target.value;
+        const numericValue = removeCurrencyMask(currentValue);
+        
         if (numericValue > 0) {
-            const formatted = numericValue.toLocaleString('pt-BR', {
+            // Verificar se o valor já tem decimais (vírgula ou ponto)
+            const hasDecimals = currentValue.includes(',') || (currentValue.includes('.') && currentValue.split('.').length > 2);
+            
+            if (hasDecimals) {
+                // Se já tem decimais, formatar mantendo os decimais (máximo 2)
+                const formatted = numericValue.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+                e.target.value = formatted;
+            } else {
+                // Se não tem decimais, formatar apenas com separadores de milhar (sem forçar decimais)
+                const formatted = numericValue.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                });
+                e.target.value = formatted;
+            }
+        } else if (currentValue.trim() === '' || numericValue === 0) {
+            e.target.value = '';
+        }
+    });
+    
+    // Aplicar máscara ao colar (paste)
+    input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const numericValue = removeCurrencyMask(pastedText);
+        if (numericValue > 0) {
+            e.target.value = numericValue.toLocaleString('pt-BR', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
             });
-            e.target.value = formatted;
-        } else if (e.target.value.trim() === '' || numericValue === 0) {
-            e.target.value = '';
+            // Disparar evento input para atualizar cálculos
+            e.target.dispatchEvent(new Event('input', { bubbles: true }));
         }
     });
     
@@ -806,7 +834,10 @@ function updateDividendsExcess() {
     
     if (!dividendsTotalInput || !dividendsExcessInput) return;
     
-    const totalValue = parseInputNumber(dividendsTotalInput.value);
+    // Garantir que o valor está formatado antes de processar
+    // A máscara já deve ter formatado, mas vamos garantir
+    const rawValue = dividendsTotalInput.value;
+    const totalValue = removeCurrencyMask(rawValue);
     const calculatedExcess = calculateDividendsExcess(totalValue);
     const calculatedTax = calculatedExcess * 0.10; // 10% sobre o excesso
     
@@ -1384,26 +1415,47 @@ function setupRealtimeCalculation() {
         // Aplicar máscara de moeda em campos monetários
         if (input.classList.contains('currency-input')) {
             setupCurrencyMask(input);
-            // Formatar valor inicial se houver
+            // Formatar valor inicial se houver (sem forçar decimais)
             if (input.value) {
                 const numericValue = removeCurrencyMask(input.value);
                 if (numericValue > 0) {
-                    const formatted = numericValue.toLocaleString('pt-BR', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                    });
-                    input.value = formatted;
+                    // Verificar se o valor original tinha decimais
+                    const hasDecimals = input.value.includes(',') || (input.value.includes('.') && input.value.split('.').length > 2);
+                    if (hasDecimals) {
+                        const formatted = numericValue.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                        });
+                        input.value = formatted;
+                    } else {
+                        const formatted = numericValue.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                        });
+                        input.value = formatted;
+                    }
                 }
             }
         }
     });
     
     // Adicionar listener específico para cálculo automático de dividendos
+    // Garantir que a máscara seja aplicada primeiro, depois o cálculo
     const dividendsTotalInput = document.getElementById('dividendsTotal');
     if (dividendsTotalInput) {
-        dividendsTotalInput.addEventListener('input', () => {
-            updateDividendsExcess();
-            recalculateSummary();
+        // Garantir que a máscara está configurada
+        if (!dividendsTotalInput.classList.contains('currency-input')) {
+            dividendsTotalInput.classList.add('currency-input');
+        }
+        setupCurrencyMask(dividendsTotalInput);
+        
+        // Adicionar listener para cálculo (usar setTimeout para garantir que a máscara seja aplicada primeiro)
+        dividendsTotalInput.addEventListener('input', function(e) {
+            // Usar setTimeout para garantir que a máscara seja aplicada antes do cálculo
+            setTimeout(() => {
+                updateDividendsExcess();
+                recalculateSummary();
+            }, 0);
         });
     }
     
